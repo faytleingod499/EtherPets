@@ -1,3 +1,7 @@
+## 2.9.10
+- The mod has its own GitHub repository now: https://github.com/faytleingod499/EtherPets
+- Released under the MIT License: you're free to copy, change and share your own versions.
+
 ## 2.9.9
 - Everyone now sees your wolf lying on the same side of you. Your game picks the side and shares it (players on older versions still pick their own).
 

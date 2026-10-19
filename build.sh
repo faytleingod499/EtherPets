@@ -10,6 +10,7 @@ rm -f out/EtherPets-mod.zip out/EtherPets-$V.zip
 (cd package && zip -qr ../out/EtherPets-mod.zip EtherPets)
 T=$(mktemp -d)
 cp thunderstore/manifest.json thunderstore/README.md thunderstore/CHANGELOG.md thunderstore/icon.png $T/
+cp LICENSE $T/
 mkdir -p $T/GDWeave/mods/EtherPets
 cp package/EtherPets/manifest.json package/EtherPets/EtherPets.pck $T/GDWeave/mods/EtherPets/
 (cd $T && zip -qr - .) > out/EtherPets-$V.zip
