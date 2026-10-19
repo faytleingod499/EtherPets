@@ -41,3 +41,14 @@ head over heels after you.
 `source/mods/EtherPets/` holds the script, the pet scenes and the howl. `model/pet_*.glb` are the
 Blender exports, `model/convert.gd` turns an imported one into a pet scene (Godot 3.5),
 `model/make_howl.py` and `model/make_chitter.py` make the howl and the chitter, and `pack.gd` packs the `.pck`.
+
+## Building
+
+The mod is plain GDScript (plus models and sounds) packed into `package/EtherPets/EtherPets.pck` with the Godot 3.5 engine's own packer:
+
+```
+godot --no-window -s pack.gd
+./build.sh
+```
+
+`pack.gd` packs `source/mods/EtherPets/` into the pck. `build.sh` then makes `out/EtherPets-mod.zip` (the folder for `GDWeave/mods`) and the Thunderstore upload zip from `thunderstore/`. Requires [GDWeave](https://thunderstore.io/c/webfishing/p/NotNet/GDWeave/).
