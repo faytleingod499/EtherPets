@@ -1,3 +1,9 @@
+## 2.10.4
+- The ball leaves your hand when you throw it and comes back when your pet brings it back (everyone with the mod
+  sees this).
+- No strength meter or arc while the ball is still out being fetched.
+- The strength meter fills half as fast (1.6 seconds to full).
+
 ## 2.10.3
 - While you hold the mouse button to throw, a dotted arc shows the ball's flight and a disc marks where it will land
   (only you see it). It uses the ball's own physics, so it lands right where the disc says.

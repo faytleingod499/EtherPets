@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.10.3"
+const VERSION = "2.10.4"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -37,7 +37,7 @@ const SIT_AFTER = 5.0      # seconds of standing still before it sits down
 const BALL_ITEM = "etherpets_ball"
 const BALL_REF = 1868100427  # always the same, so a hotbar slot with the ball on it still works next time
 const BALL_MIN_POWER = 0.35  # a quick click is a short toss, holding the button throws further
-const BALL_CHARGE_TIME = 0.8
+const BALL_CHARGE_TIME = 1.6 # seconds to full strength
 const BALL_KEY = "etherball" # "1;<throw number>;<x,y,z where it left the hand>;<x,y,z speed>", the last throw
 const BALL_RADIUS = 0.09
 const BALL_SPEED = 21.2      # 15 * sqrt(2): twice the distance of 2.10.1
@@ -456,6 +456,7 @@ func _update_pets(delta, net):
 		pet["cooldown"] = wanted[key][7]
 		pet["told_side"] = wanted[key][8]
 		_listen_for_bark(pet, owner_node, delta)
+		_hide_held_ball(pet, owner_node)
 		# "Pet <name>" is offered while it stands or walks, not while it sits, lies down or is being petted
 		if pet["area"] != null and is_instance_valid(pet["area"]):
 			var name = str(wanted[key][4])
@@ -714,6 +715,10 @@ func _remove_pet(key):
 	if not pets.has(key):
 		return
 	_end_fetch(pets[key])
+	if pets[key].get("hid_sprite", false) and is_instance_valid(pets[key]["owner"]):
+		var sprite = pets[key]["owner"].get("item_sprite")
+		if sprite != null and is_instance_valid(sprite):
+			sprite.visible = true
 	var node = pets[key]["node"]
 	if is_instance_valid(node):
 		node.queue_free()
@@ -930,6 +935,8 @@ func _charge_power():
 
 
 func _update_charge_bar():
+	if charging_since >= 0 and not _can_throw():
+		charging_since = -1
 	var show = charging_since >= 0 and _holding_ball()
 	charge_panel.visible = show
 	_update_arc(show)
@@ -1189,13 +1196,19 @@ func _hud_free():
 	return typeof(popups) != TYPE_ARRAY or popups.empty()
 
 
-func _throw_ball(power = 1.0):
+# my pet is out and free to fetch: one ball at a time, it has to bring it back first
+func _can_throw():
 	if not pets.has("me") or not show_pet:
 		return false
 	var pet = pets["me"]
+	return is_instance_valid(pet["owner"]) and pet["pat"] == null and pet.get("fetch") == null
+
+
+func _throw_ball(power = 1.0):
+	if not _can_throw():
+		return false
+	var pet = pets["me"]
 	var owner_node = pet["owner"]
-	if not is_instance_valid(owner_node) or pet["pat"] != null or pet.get("fetch") != null:
-		return false # one ball at a time, it has to bring it back first
 	var now = OS.get_ticks_msec()
 	if now - last_throw < THROW_COOLDOWN_MS:
 		return false
@@ -1370,6 +1383,24 @@ func _ball_step(f, space):
 	if f["pos"].y < f["start_y"] - 60.0:
 		f["resting"] = true
 		f["lost"] = true
+
+
+# The ball can't be in the hand and out on the grass: the held ball is hidden while the pet has it (on every screen
+# with the mod, for every player), and shows again when it's brought back. Only the ball is ever hidden.
+func _hide_held_ball(pet, owner_node):
+	var sprite = owner_node.get("item_sprite")
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var held = owner_node.get("held_item")
+	var holding = typeof(held) == TYPE_DICTIONARY and held.get("id") == BALL_ITEM
+	var f = pet.get("fetch")
+	var hide = holding and f != null and f["state"] in ["free", "carry"]
+	if hide and sprite.visible:
+		sprite.visible = false
+		pet["hid_sprite"] = true
+	elif not hide and pet.get("hid_sprite", false):
+		sprite.visible = true
+		pet["hid_sprite"] = false
 
 
 # where the ball sits when the pet carries it
@@ -2167,7 +2198,7 @@ func _input(event):
 	# with the Tennis Ball in hand the mouse button throws it: hold it down to throw further
 	if event.is_action("primary_action") and not event.is_echo() and _holding_ball():
 		if event.is_pressed():
-			if not _typing() and not menu_open and _hud_free():
+			if not _typing() and not menu_open and _hud_free() and _can_throw():
 				charging_since = OS.get_ticks_msec()
 		elif charging_since >= 0:
 			var power = _charge_power()
