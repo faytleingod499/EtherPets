@@ -1,3 +1,10 @@
+## 2.10.2
+- The ball is now called the **Tennis Ball** (no more "Microscopic" in front of its name).
+- A bar under the middle of the screen shows how hard you'll throw while you hold the mouse button; it turns orange at
+  full strength.
+- Throws go twice as far.
+- The pet menu is back to its old width (the fetch hint is smaller and wraps).
+
 ## 2.10.1
 - **Fetch!** A **Pet Ball** is in your inventory: put it on your hotbar, hold it and click to throw it where you're
   looking (hold the mouse button longer and aim higher to throw further). It bounces and rolls, your pet races after

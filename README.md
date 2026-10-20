@@ -27,7 +27,7 @@ Needs [GDWeave](https://github.com/NotNite/GDWeave). Copy the `EtherPets` folder
   made it. Players without the mod do not see pets.
 
 ## Fetch
-The **Pet Ball** is an item (`etherpets_ball`, registered in `Globals.item_data` from `item_resource.gd` at start, icon
+The **Tennis Ball** is an item (`etherpets_ball`, registered in `Globals.item_data` from `item_resource.gd` at start, icon
 drawn in code, category tool, `action` empty, unselectable/unrenamable/unsellable). It is put straight into
 `PlayerData.inventory` with the fixed ref `BALL_REF`, so a hotbar slot with it survives sessions. The game doesn't check
 item ids when loading a save (the inventory screen would break on an unknown one), so the ball is kept out of every save:
@@ -36,7 +36,7 @@ the world's `autosave_timer` has under 1.5 s left, outside the world, on quit an
 afterwards. It only edits the list (not `PlayerData._remove_item`, which would clear the hotbar slot).
 
 With the ball held (`held_item.id`), `primary_action` down/up throws it (`_throw_ball(power)`: power 0.35–1.0 over a
-0.8 s hold): along the camera's aim + 20° (5°–70°), up to 15 m/s. Players without EtherPets (no `etherpet` member data)
+0.8 s hold): along the camera's aim + 20° (5°–70°), up to 21.2 m/s. Players without EtherPets (no `etherpet` member data)
 get an `actor_action` `_update_held_item` with the empty hand, since their game errors on the unknown item.
 
 The throw goes into the lobby member data `etherball` = `1;<throw number>;<x,y,z from>;<x,y,z velocity>`; other players

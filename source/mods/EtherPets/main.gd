@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.10.1"
+const VERSION = "2.10.2"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -33,14 +33,14 @@ const WALK_SPEED = 3.0
 const RUN_SPEED = 7.5
 const SIT_AFTER = 5.0      # seconds of standing still before it sits down
 
-# fetch: the Pet Ball in the inventory, held and thrown with the mouse; the pet runs after it and brings it back
+# fetch: the Tennis Ball in the inventory, held and thrown with the mouse; the pet runs after it and brings it back
 const BALL_ITEM = "etherpets_ball"
 const BALL_REF = 1868100427  # always the same, so a hotbar slot with the ball on it still works next time
 const BALL_MIN_POWER = 0.35  # a quick click is a short toss, holding the button throws further
 const BALL_CHARGE_TIME = 0.8
 const BALL_KEY = "etherball" # "1;<throw number>;<x,y,z where it left the hand>;<x,y,z speed>", the last throw
 const BALL_RADIUS = 0.09
-const BALL_SPEED = 15.0
+const BALL_SPEED = 21.2      # 15 * sqrt(2): twice the distance of 2.10.1
 const BALL_GRAVITY = 18.0
 const BALL_BOUNCE = 0.5      # how much of its speed into the ground it keeps on a bounce
 const BALL_STEP = 1.0 / 60.0
@@ -189,6 +189,10 @@ var charging_since = -1      # ms when the mouse button went down with the ball 
 var told_no_mod = {}         # players without the mod, already told I'm holding nothing (see _hide_ball_from_others)
 var told_timer = 0.0
 var keep_timer = 0.0
+var fetch_hint
+var charge_panel
+var charge_fill
+var charge_label
 var area_script = null
 
 # the paw button and the menu
@@ -322,6 +326,7 @@ func _parse_sync(text):
 
 func _process(delta):
 	_refresh_ui()
+	_update_charge_bar()
 
 	var net = get_node_or_null("/root/Network")
 	var lobby = 0
@@ -871,7 +876,7 @@ func _stride_rate(speed):
 # every player's game throws the same ball and their copy of the pet fetches it. The ball moves the same everywhere
 # (same throw, same ground), so the pets do the same.
 
-# --- the Pet Ball item ---
+# --- the Tennis Ball item ---
 # A real item in the game's list, so it shows in the inventory and goes on the hotbar like the rod or the guitar.
 # The game doesn't check items when it loads a save: an item it doesn't know breaks the inventory screen. So the ball
 # is never in a save: it is taken out of the inventory while the pause menu is open (Save, Quit) and just before the
@@ -880,6 +885,60 @@ func _stride_rate(speed):
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST:
 		_set_ball_in_inventory(false)
+
+
+# how hard the throw will be, while the mouse button is held: a bar under the middle of the screen
+const CHARGE_WIDTH = 180.0
+
+func _build_charge_bar():
+	charge_panel = PanelContainer.new()
+	charge_panel.visible = false
+	charge_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charge_panel.add_stylebox_override("panel", _glass(Color(0.06, 0.12, 0.18, 0.55), Color(0.55, 1.0, 1.0, 0.45), 8, 4))
+	layer.add_child(charge_panel)
+	var column = VBoxContainer.new()
+	column.add_constant_override("separation", 3)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charge_panel.add_child(column)
+	charge_label = Label.new()
+	charge_label.text = "Throw"
+	charge_label.align = Label.ALIGN_CENTER
+	charge_label.add_color_override("font_color", Color(0.75, 0.95, 1.0))
+	column.add_child(charge_label)
+	var track = ColorRect.new()
+	track.color = Color(0, 0, 0, 0.35)
+	track.rect_min_size = Vector2(CHARGE_WIDTH, 10)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(track)
+	charge_fill = ColorRect.new()
+	charge_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charge_fill.rect_size = Vector2(0, 10)
+	track.add_child(charge_fill)
+
+
+func _charge_power():
+	if charging_since < 0:
+		return 0.0
+	var held = (OS.get_ticks_msec() - charging_since) / 1000.0
+	return clamp(BALL_MIN_POWER + (1.0 - BALL_MIN_POWER) * held / BALL_CHARGE_TIME, BALL_MIN_POWER, 1.0)
+
+
+func _update_charge_bar():
+	var show = charging_since >= 0 and _holding_ball()
+	charge_panel.visible = show
+	if not show:
+		return
+	var power = _charge_power()
+	# the bar fills by distance (which grows with the square of the throw's speed): from a short toss to the longest
+	var k = (power * power - BALL_MIN_POWER * BALL_MIN_POWER) / (1.0 - BALL_MIN_POWER * BALL_MIN_POWER)
+	charge_fill.rect_size = Vector2(round(CHARGE_WIDTH * k), 10)
+	# cyan while it builds, warm when it's full
+	charge_fill.color = Color(0.3, 1.0, 1.0, 0.85).linear_interpolate(Color(1.0, 0.75, 0.3, 0.95), k)
+	charge_label.text = "Throw: max!" if k >= 0.999 else "Throw"
+	var area = get_viewport().get_visible_rect().size
+	charge_panel.rect_size = Vector2()
+	var size = charge_panel.get_combined_minimum_size()
+	charge_panel.rect_position = Vector2(round((area.x - size.x) / 2.0), round(area.y * 0.62))
 
 
 func _register_ball_item():
@@ -892,8 +951,8 @@ func _register_ball_item():
 	if script == null:
 		return false
 	var res = script.new()
-	res.item_name = "Pet Ball"
-	res.item_description = "Throw it and your pet brings it back! Hold the mouse button to throw further. (EtherPets)"
+	res.item_name = "Tennis Ball"
+	res.item_description = "Throw it and your pet brings it back! Hold the mouse button to throw further, the bar shows how far. (EtherPets)"
 	res.help_text = "throw (hold for further)"
 	res.icon = _ball_icon()
 	res.show_item = true
@@ -911,6 +970,7 @@ func _register_ball_item():
 	res.stackable = false
 	res.unobtainable = false
 	res.alive = false
+	res.average_size = 1.0   # its size is 1: no "Microscopic" in front of the name
 	globals.item_data[BALL_ITEM] = {"file": res}
 	return true
 
@@ -1799,10 +1859,14 @@ func _build_ui():
 	_add_tooltip(howl_box, "Answer", "Your pet answers when you bark or meow (a wolf howls, a cat meows), at most once every 2 minutes")
 	column.add_child(howl_box)
 
-	var fetch_hint = Label.new()
-	fetch_hint.text = "Put the Pet Ball on your hotbar to play fetch"
+	# small, and wrapped to the menu's width so it doesn't make the menu wider
+	fetch_hint = Label.new()
+	fetch_hint.text = "Put the Tennis Ball on your hotbar to play fetch"
+	fetch_hint.autowrap = true
 	fetch_hint.add_color_override("font_color", Color(0.75, 0.95, 1.0))
 	column.add_child(fetch_hint)
+
+	_build_charge_bar()
 
 	var cd_row = HBoxContainer.new()
 	cd_row.add_constant_override("separation", 8)
@@ -1990,15 +2054,15 @@ func _input(event):
 		get_tree().set_input_as_handled()
 		return
 
-	# with the Pet Ball in hand the mouse button throws it: hold it down to throw further
+	# with the Tennis Ball in hand the mouse button throws it: hold it down to throw further
 	if event.is_action("primary_action") and not event.is_echo() and _holding_ball():
 		if event.is_pressed():
 			if not _typing() and not menu_open and _hud_free():
 				charging_since = OS.get_ticks_msec()
 		elif charging_since >= 0:
-			var held = (OS.get_ticks_msec() - charging_since) / 1000.0
+			var power = _charge_power()
 			charging_since = -1
-			_throw_ball(clamp(BALL_MIN_POWER + (1.0 - BALL_MIN_POWER) * held / BALL_CHARGE_TIME, BALL_MIN_POWER, 1.0))
+			_throw_ball(power)
 
 
 func _typing():
@@ -2372,6 +2436,15 @@ func _refresh_ui():
 		if main != null and main.theme != null:
 			paw.theme = main.theme
 			menu.theme = main.theme
+			charge_panel.theme = main.theme
+			# the game's font, smaller, for the fetch hint
+			var base = menu.get_font("font", "Label")
+			if base is DynamicFont:
+				var small = base.duplicate()
+				small.size = int(max(10, round(base.size * 0.72)))
+				small.outline_size = int(round(base.outline_size * 0.72))
+				fetch_hint.add_font_override("font", small)
+				charge_label.add_font_override("font", small)
 	if not show and menu_open:
 		_set_menu(false)
 	if not show:
