@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.10.5"
+const VERSION = "2.10.6"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -45,7 +45,7 @@ const BALL_GRAVITY = 18.0
 const BALL_BOUNCE = 0.5      # how much of its speed into the ground it keeps on a bounce
 const BALL_STEP = 1.0 / 60.0
 const FETCH_SPEED = 9.0      # it really runs for a ball
-const FETCH_WAIT = 1.0       # seconds it watches the ball fly before it runs after it
+const FETCH_WAIT = 0.5       # seconds it watches the ball fly before it runs after it
 const FETCH_GIVE_UP = 25.0   # seconds; a ball it can't reach (in the sea, up a cliff) is let go
 const THROW_COOLDOWN_MS = 600
 # where the ball sits in its mouth: in its head bone's own space, model units (bone y = forward, z = down)

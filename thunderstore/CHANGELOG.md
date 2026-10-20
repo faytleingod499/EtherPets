@@ -1,3 +1,6 @@
+## 2.10.6
+- Your pet waits half a second (was a second) before it runs after the ball.
+
 ## 2.10.5
 - Your pet watches the ball fly for a second before it runs after it, so it no longer snatches a short throw right
   out of the air beside you.
