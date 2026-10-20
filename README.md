@@ -43,7 +43,7 @@ The throw goes into the lobby member data `etherball` = `1;<throw number>;<x,y,z
 read it every 0.2 s (a player's last throw is ignored the first time their pet is seen) and simulate the same ball. The ball
 (`_move_ball`) moves in fixed 1/60 s steps with raycasts on layers 1|2: bounces (keeps 50% of its speed into the surface)
 above 1.5 m/s, rolls with friction below, rests when slow on flat ground or after 10 s. The pet (`_fetch`) hops off a lap or
-head first, runs after the ball (up to 9 m/s, faster when its owner is fast), picks it up when close and the ball is low,
+head first, watches it for `FETCH_WAIT` (1 s), runs after the ball (up to 9 m/s, faster when its owner is fast), picks it up when close and the ball is low,
 carries it at its mouth (`MOUTH`, in the head bone's space) back to its owner, drops it and plays `wolf_happy` for 1.4 s.
 It gives up after 25 s or when the ball fell 60 m. While charging, `_update_arc` runs the same `_ball_step` from the same `_throw_from` until the first touchdown
 and shows 40 dots (MultiMesh) and a landing disc, on the thrower's screen only. On the drop the pet plays its `pet_sound`. While the ball is out (free or carried) the holder's `item_sprite` is hidden (`_hide_held_ball`, every screen); a throw (and the meter) only starts when `_can_throw()`. Tests: `e_fetch.gd`, `e_fetch_lap.gd`, `e_ball.gd`.

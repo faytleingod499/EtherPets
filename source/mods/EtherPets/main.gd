@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.10.4"
+const VERSION = "2.10.5"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -45,6 +45,7 @@ const BALL_GRAVITY = 18.0
 const BALL_BOUNCE = 0.5      # how much of its speed into the ground it keeps on a bounce
 const BALL_STEP = 1.0 / 60.0
 const FETCH_SPEED = 9.0      # it really runs for a ball
+const FETCH_WAIT = 1.0       # seconds it watches the ball fly before it runs after it
 const FETCH_GIVE_UP = 25.0   # seconds; a ball it can't reach (in the sea, up a cliff) is let go
 const THROW_COOLDOWN_MS = 600
 # where the ball sits in its mouth: in its head bone's own space, model units (bone y = forward, z = down)
@@ -1458,6 +1459,11 @@ func _fetch(pet, owner_node, delta):
 		# out of reach (in the sea, off a cliff, too long): it lets it go and comes back
 		if f.get("lost", false) or f["t"] > FETCH_GIVE_UP:
 			_end_fetch(pet)
+			return
+		# it watches the ball fly for a moment first, so it doesn't snatch it out of the air at its owner's side
+		if f["t"] < FETCH_WAIT:
+			_run_to(pet, f["pos"], 100000.0, 0.0, _feet_y(owner_node), delta)
+			_play(pet, "wolf_idle", 1.0)
 			return
 		var ground_y = _ground(node, f["pos"], f["pos"].y)
 		var reach = 1.1 * pet["scale"] + 0.15

@@ -1,3 +1,7 @@
+## 2.10.5
+- Your pet watches the ball fly for a second before it runs after it, so it no longer snatches a short throw right
+  out of the air beside you.
+
 ## 2.10.4
 - The ball leaves your hand when you throw it and comes back when your pet brings it back (everyone with the mod
   sees this).
