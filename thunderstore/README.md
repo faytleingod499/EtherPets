@@ -36,10 +36,14 @@ and stroke its head, sized to fit your character, even a very small one.
 
 ## Fetch
 
-Press **X** to throw a ball where you're looking: aim higher to throw further. It bounces off walls and rolls to a
-stop, your pet races after it, picks it up in its mouth, brings it back and drops it at your feet with a happy wiggle.
-If it was in your lap or on your head, it hops down first. A ball it can't reach (in the sea, off a cliff) is let go
-after a while and it comes back without it.
+You get a **Pet Ball** in your inventory. Put it on your hotbar, hold it, and click to throw it where you're looking:
+hold the mouse button longer and aim higher to throw further. It bounces off walls and rolls to a stop, your pet races
+after it, picks it up in its mouth, brings it back and drops it at your feet with a happy wiggle. If it was in your lap
+or on your head, it hops down first. A ball it can't reach (in the sea, off a cliff) is let go after a while and it
+comes back without it.
+
+The ball can't be sold, mailed or renamed, and it is never written into your save file, so uninstalling the mod
+later can't break your inventory.
 
 ## Multiplayer
 

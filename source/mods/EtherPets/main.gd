@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.10.0"
+const VERSION = "2.10.1"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -33,7 +33,11 @@ const WALK_SPEED = 3.0
 const RUN_SPEED = 7.5
 const SIT_AFTER = 5.0      # seconds of standing still before it sits down
 
-# fetch: X throws a ball where the camera looks, the pet runs after it and brings it back
+# fetch: the Pet Ball in the inventory, held and thrown with the mouse; the pet runs after it and brings it back
+const BALL_ITEM = "etherpets_ball"
+const BALL_REF = 1868100427  # always the same, so a hotbar slot with the ball on it still works next time
+const BALL_MIN_POWER = 0.35  # a quick click is a short toss, holding the button throws further
+const BALL_CHARGE_TIME = 0.8
 const BALL_KEY = "etherball" # "1;<throw number>;<x,y,z where it left the hand>;<x,y,z speed>", the last throw
 const BALL_RADIUS = 0.09
 const BALL_SPEED = 15.0
@@ -180,6 +184,11 @@ var ball_seen = {} # steam id -> the throw number last seen from them
 var ball_read_timer = 0.0
 var last_throw = -100000
 var ball_material = null
+var ball_icon = null
+var charging_since = -1      # ms when the mouse button went down with the ball in hand, -1 when not
+var told_no_mod = {}         # players without the mod, already told I'm holding nothing (see _hide_ball_from_others)
+var told_timer = 0.0
+var keep_timer = 0.0
 var area_script = null
 
 # the paw button and the menu
@@ -222,6 +231,7 @@ func _ready():
 		area_script = load(AREA_SCRIPT)
 	if ResourceLoader.exists(SHADOW_PATH):
 		shadow_scene = load(SHADOW_PATH)
+	_register_ball_item()
 	_reset_colors(0)
 	_build_ui()
 	_load_config()
@@ -230,6 +240,7 @@ func _ready():
 
 
 func _exit_tree():
+	_set_ball_in_inventory(false)
 	_unlock_hud()
 	if pats.has("me"):
 		_send_pat("")
@@ -345,6 +356,15 @@ func _process(delta):
 	if pat_read_timer >= 0.2:
 		pat_read_timer = 0.0
 		_read_remote_pats(lobby, net)
+
+	keep_timer += delta
+	if keep_timer >= 0.1:
+		keep_timer = 0.0
+		_keep_ball_item()
+	told_timer += delta
+	if told_timer >= 2.0:
+		told_timer = 0.0
+		_hide_ball_from_others(lobby, net)
 
 	# someone throwing a ball for their pet
 	ball_read_timer += delta
@@ -851,6 +871,163 @@ func _stride_rate(speed):
 # every player's game throws the same ball and their copy of the pet fetches it. The ball moves the same everywhere
 # (same throw, same ground), so the pets do the same.
 
+# --- the Pet Ball item ---
+# A real item in the game's list, so it shows in the inventory and goes on the hotbar like the rod or the guitar.
+# The game doesn't check items when it loads a save: an item it doesn't know breaks the inventory screen. So the ball
+# is never in a save: it is taken out of the inventory while the pause menu is open (Save, Quit) and just before the
+# autosave, and put back right after. The hotbar slot it sits on is saved, and points at nothing without the mod.
+
+func _notification(what):
+	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST:
+		_set_ball_in_inventory(false)
+
+
+func _register_ball_item():
+	var globals = get_node_or_null("/root/Globals")
+	if globals == null or typeof(globals.get("item_data")) != TYPE_DICTIONARY:
+		return false
+	if globals.item_data.has(BALL_ITEM):
+		return true
+	var script = load("res://Resources/Scripts/item_resource.gd")
+	if script == null:
+		return false
+	var res = script.new()
+	res.item_name = "Pet Ball"
+	res.item_description = "Throw it and your pet brings it back! Hold the mouse button to throw further. (EtherPets)"
+	res.help_text = "throw (hold for further)"
+	res.icon = _ball_icon()
+	res.show_item = true
+	res.show_scene = false
+	res.uses_size = false
+	res.action = ""          # the mod throws it, the game itself does nothing on a click
+	res.category = "tool"
+	res.unselectable = true  # can't be mailed or gifted to someone who may not have the mod
+	res.unrenamable = true
+	res.can_be_sold = false
+	res.generate_worth = false
+	res.sell_value = 0
+	res.loot_table = "none"
+	res.obtain_xp = 0
+	res.stackable = false
+	res.unobtainable = false
+	res.alive = false
+	globals.item_data[BALL_ITEM] = {"file": res}
+	return true
+
+
+# a tennis ball drawn into a texture: yellow-green with the white seam
+func _ball_icon():
+	if ball_icon != null:
+		return ball_icon
+	var size = 64
+	var img = Image.new()
+	img.create(size, size, false, Image.FORMAT_RGBA8)
+	img.lock()
+	var c = Vector2(size, size) / 2.0
+	var r = size * 0.42
+	for y in range(size):
+		for x in range(size):
+			var p = Vector2(x + 0.5, y + 0.5)
+			var d = p.distance_to(c)
+			if d > r + 1.0:
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+				continue
+			var col = Color(0.82, 0.93, 0.25)
+			# shading, lighter toward the top left
+			var light = clamp(1.15 - (p - (c - Vector2(r, r) * 0.35)).length() / (r * 2.2), 0.65, 1.15)
+			col = Color(col.r * light, col.g * light, col.b * light)
+			# the seam: two curves facing away from each other
+			var q = (p - c) / r
+			var seam = abs(abs(q.x) - (0.55 + 0.35 * q.y * q.y))
+			if seam < 0.07:
+				col = Color(0.97, 0.97, 0.92)
+			if d > r - 1.5:
+				col = Color(0.35, 0.42, 0.1) # outline
+			col.a = clamp(r + 1.0 - d, 0.0, 1.0)
+			img.set_pixel(x, y, col)
+	img.unlock()
+	ball_icon = ImageTexture.new()
+	ball_icon.create_from_image(img, Texture.FLAG_FILTER)
+	return ball_icon
+
+
+func _ball_entry_index():
+	var data = get_node_or_null("/root/PlayerData")
+	if data == null:
+		return -1
+	for i in range(data.inventory.size()):
+		var item = data.inventory[i]
+		if typeof(item) == TYPE_DICTIONARY and item.get("id") == BALL_ITEM:
+			return i
+	return -1
+
+
+func _set_ball_in_inventory(want):
+	var data = get_node_or_null("/root/PlayerData")
+	if data == null or typeof(data.get("inventory")) != TYPE_ARRAY:
+		return
+	var at = _ball_entry_index()
+	if want and at < 0:
+		if not _register_ball_item():
+			return
+		# straight into the list: the game's own add would treat a new item as "just caught"
+		data.inventory.append({"id": BALL_ITEM, "ref": BALL_REF, "size": 1.0, "quality": 0, "tags": [], "custom_name": "", "count": 1})
+		data.emit_signal("_inventory_refresh")
+	elif not want and at >= 0:
+		# taken out of the list only, the hotbar keeps its slot (PlayerData._remove_item would clear it)
+		while at >= 0:
+			data.inventory.remove(at)
+			at = _ball_entry_index()
+		data.emit_signal("_inventory_refresh")
+
+
+# in the inventory while playing; out of it whenever the game may save
+func _keep_ball_item():
+	var want = false
+	var hud = _get_hud()
+	var world = get_tree().get_nodes_in_group("world")
+	if hud != null and not world.empty():
+		want = hud.get("menu") != 3 # MENUS.ESC: its Save and Quit buttons save the game
+		var timer = world[0].get_node_or_null("autosave_timer")
+		if timer != null and not timer.is_stopped() and timer.time_left < 1.5:
+			want = false
+	_set_ball_in_inventory(want)
+	if not _holding_ball():
+		charging_since = -1
+
+
+func _holding_ball():
+	var players = get_tree().get_nodes_in_group("controlled_player")
+	if players.empty():
+		return false
+	var held = players[0].get("held_item")
+	return typeof(held) == TYPE_DICTIONARY and held.get("id") == BALL_ITEM
+
+
+# Players without EtherPets don't know the ball: their game shows an error and keeps showing whatever I held before.
+# So they are told I'm holding nothing (once, and again to anyone who joins while I hold it).
+func _hide_ball_from_others(lobby, net):
+	if not _holding_ball() or lobby <= 0 or net == null or steam == null:
+		told_no_mod = {}
+		return
+	var players = get_tree().get_nodes_in_group("controlled_player")
+	var actor_id = players[0].get("actor_id")
+	if actor_id == null or int(actor_id) < 0:
+		return
+	var members = net.get("LOBBY_MEMBERS")
+	if typeof(members) != TYPE_ARRAY:
+		return
+	for member in members:
+		var id = int(member.get("steam_id", 0))
+		if id <= 0 or id == int(net.STEAM_ID) or told_no_mod.has(id):
+			continue
+		if str(steam.getLobbyMemberData(lobby, id, SYNC_KEY)) != "":
+			continue # has the mod, sees the ball
+		told_no_mod[id] = true
+		net._send_P2P_Packet({"type": "actor_action", "actor_id": int(actor_id), "action": "_update_held_item",
+			"params": [{"id": "empty_hand", "ref": 0, "size": 1.0, "quality": 0, "tags": []}]}, str(id), 2, net.CHANNELS.ACTOR_ACTION)
+
+
 # only while nothing else is open (the game's own menus, a popup)
 func _hud_free():
 	var hud = _get_hud()
@@ -862,7 +1039,7 @@ func _hud_free():
 	return typeof(popups) != TYPE_ARRAY or popups.empty()
 
 
-func _throw_ball():
+func _throw_ball(power = 1.0):
 	if not pets.has("me") or not show_pet:
 		return false
 	var pet = pets["me"]
@@ -884,7 +1061,7 @@ func _throw_ball():
 			flat = Vector3(aim.x, 0, aim.z).normalized()
 		pitch = asin(clamp(aim.y, -1.0, 1.0))
 	var up = clamp(pitch + deg2rad(20.0), deg2rad(5.0), deg2rad(70.0))
-	var velocity = flat * cos(up) * BALL_SPEED + Vector3.UP * sin(up) * BALL_SPEED
+	var velocity = (flat * cos(up) + Vector3.UP * sin(up)) * BALL_SPEED * power
 	var size = _player_size(owner_node)
 	var from = owner_node.global_transform.origin + Vector3.UP * 0.35 * size + flat * 0.45 * size
 
@@ -1623,7 +1800,7 @@ func _build_ui():
 	column.add_child(howl_box)
 
 	var fetch_hint = Label.new()
-	fetch_hint.text = "Press X to throw a ball for your pet"
+	fetch_hint.text = "Put the Pet Ball on your hotbar to play fetch"
 	fetch_hint.add_color_override("font_color", Color(0.75, 0.95, 1.0))
 	column.add_child(fetch_hint)
 
@@ -1813,11 +1990,15 @@ func _input(event):
 		get_tree().set_input_as_handled()
 		return
 
-	# X throws a ball for my pet (the game has nothing on X)
-	if event is InputEventKey and event.pressed and not event.echo and event.scancode == KEY_X:
-		if not _typing() and not menu_open and _hud_free():
-			if _throw_ball():
-				get_tree().set_input_as_handled()
+	# with the Pet Ball in hand the mouse button throws it: hold it down to throw further
+	if event.is_action("primary_action") and not event.is_echo() and _holding_ball():
+		if event.is_pressed():
+			if not _typing() and not menu_open and _hud_free():
+				charging_since = OS.get_ticks_msec()
+		elif charging_since >= 0:
+			var held = (OS.get_ticks_msec() - charging_since) / 1000.0
+			charging_since = -1
+			_throw_ball(clamp(BALL_MIN_POWER + (1.0 - BALL_MIN_POWER) * held / BALL_CHARGE_TIME, BALL_MIN_POWER, 1.0))
 
 
 func _typing():

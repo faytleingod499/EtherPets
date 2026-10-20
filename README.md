@@ -27,14 +27,25 @@ Needs [GDWeave](https://github.com/NotNite/GDWeave). Copy the `EtherPets` folder
   made it. Players without the mod do not see pets.
 
 ## Fetch
-X throws a ball (`_throw_ball`): along the camera's aim, 20° above it (5°–70°), at 15 m/s. The throw goes into the lobby
-member data `etherball` = `1;<throw number>;<x,y,z from>;<x,y,z velocity>`; other players read it every 0.2 s (a
-player's last throw is ignored the first time their pet is seen) and simulate the same ball. The ball (`_move_ball`)
-moves in fixed 1/60 s steps with raycasts on layers 1|2: bounces (keeps 50% of its speed into the surface) above
-1.5 m/s, rolls with friction below, rests when slow on flat ground or after 10 s. The pet (`_fetch`) hops off a lap or
-head first, runs after the ball (up to 9 m/s, faster when its owner is fast), picks it up when close and the ball is
-low, carries it at its mouth (`MOUTH`, in the head bone's space) back to its owner, drops it and plays `wolf_happy`
-for 1.4 s. It gives up after 25 s or when the ball fell 60 m. Tests: `e_fetch.gd`, `e_fetch_lap.gd`.
+The **Pet Ball** is an item (`etherpets_ball`, registered in `Globals.item_data` from `item_resource.gd` at start, icon
+drawn in code, category tool, `action` empty, unselectable/unrenamable/unsellable). It is put straight into
+`PlayerData.inventory` with the fixed ref `BALL_REF`, so a hotbar slot with it survives sessions. The game doesn't check
+item ids when loading a save (the inventory screen would break on an unknown one), so the ball is kept out of every save:
+`_keep_ball_item` (every 0.1 s) takes it out of the list while the pause menu is open (its Save/Quit buttons save), when
+the world's `autosave_timer` has under 1.5 s left, outside the world, on quit and when the mod unloads, and puts it back
+afterwards. It only edits the list (not `PlayerData._remove_item`, which would clear the hotbar slot).
+
+With the ball held (`held_item.id`), `primary_action` down/up throws it (`_throw_ball(power)`: power 0.35–1.0 over a
+0.8 s hold): along the camera's aim + 20° (5°–70°), up to 15 m/s. Players without EtherPets (no `etherpet` member data)
+get an `actor_action` `_update_held_item` with the empty hand, since their game errors on the unknown item.
+
+The throw goes into the lobby member data `etherball` = `1;<throw number>;<x,y,z from>;<x,y,z velocity>`; other players
+read it every 0.2 s (a player's last throw is ignored the first time their pet is seen) and simulate the same ball. The ball
+(`_move_ball`) moves in fixed 1/60 s steps with raycasts on layers 1|2: bounces (keeps 50% of its speed into the surface)
+above 1.5 m/s, rolls with friction below, rests when slow on flat ground or after 10 s. The pet (`_fetch`) hops off a lap or
+head first, runs after the ball (up to 9 m/s, faster when its owner is fast), picks it up when close and the ball is low,
+carries it at its mouth (`MOUTH`, in the head bone's space) back to its owner, drops it and plays `wolf_happy` for 1.4 s.
+It gives up after 25 s or when the ball fell 60 m. Tests: `e_fetch.gd`, `e_fetch_lap.gd`, `e_ball.gd`.
 
 ## Petting
 

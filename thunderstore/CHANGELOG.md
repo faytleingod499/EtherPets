@@ -1,8 +1,12 @@
-## 2.10.0
-- **Fetch!** Press **X** to throw a ball where you're looking (aim higher to throw further). It bounces and rolls,
-  your pet races after it, grabs it, brings it back and drops it at your feet with a happy wiggle. A cat in your lap or
-  a raccoon on your head hops down first. One ball at a time: throw again once it's brought back.
-- Everyone with EtherPets sees your throw and your pet fetching it.
+## 2.10.1
+- **Fetch!** A **Pet Ball** is in your inventory: put it on your hotbar, hold it and click to throw it where you're
+  looking (hold the mouse button longer and aim higher to throw further). It bounces and rolls, your pet races after
+  it, grabs it, brings it back and drops it at your feet with a happy wiggle. A cat in your lap or a raccoon on your
+  head hops down first. One ball at a time: throw again once it's brought back.
+- Everyone with EtherPets sees your throw and your pet fetching it. Players without the mod just see you
+  empty-handed.
+- The ball is never written into your save, so removing the mod later can't break your inventory. (It steps out of the
+  inventory for a moment while the pause menu is open and when the game autosaves.)
 
 ## 2.9.10
 - The mod has its own GitHub repository now: https://github.com/faytleingod499/EtherPets
