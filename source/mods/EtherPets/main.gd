@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.10.2"
+const VERSION = "2.10.3"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -193,6 +193,9 @@ var fetch_hint
 var charge_panel
 var charge_fill
 var charge_label
+var arc_node = null   # the dots of the preview arc while charging a throw
+var land_node = null  # and the disc where it lands
+const ARC_DOTS = 40
 var area_script = null
 
 # the paw button and the menu
@@ -245,6 +248,9 @@ func _ready():
 
 func _exit_tree():
 	_set_ball_in_inventory(false)
+	if arc_node != null and is_instance_valid(arc_node):
+		arc_node.queue_free()
+		land_node.queue_free()
 	_unlock_hud()
 	if pats.has("me"):
 		_send_pat("")
@@ -926,6 +932,7 @@ func _charge_power():
 func _update_charge_bar():
 	var show = charging_since >= 0 and _holding_ball()
 	charge_panel.visible = show
+	_update_arc(show)
 	if not show:
 		return
 	var power = _charge_power()
@@ -939,6 +946,89 @@ func _update_charge_bar():
 	charge_panel.rect_size = Vector2()
 	var size = charge_panel.get_combined_minimum_size()
 	charge_panel.rect_position = Vector2(round((area.x - size.x) / 2.0), round(area.y * 0.62))
+
+
+# The arc the ball will fly, worked out with the same steps the real ball takes, up to where it first touches down.
+# Only on my screen.
+func _update_arc(show):
+	var pet = pets.get("me")
+	if show and (pet == null or pet.get("fetch") != null or not is_instance_valid(pet["owner"])):
+		show = false # no ball to throw right now
+	if not show:
+		if arc_node != null and is_instance_valid(arc_node):
+			arc_node.visible = false
+			land_node.visible = false
+		return
+	var owner_node = pet["owner"]
+	var parent = owner_node.get_parent()
+	if arc_node == null or not is_instance_valid(arc_node) or arc_node.get_parent() != parent:
+		_make_arc(parent)
+	var space = owner_node.get_world().direct_space_state if owner_node.get_world() != null else null
+	var throw = _throw_from(owner_node, _charge_power())
+	var f = {"pos": throw[0], "vel": throw[1], "still": 0.0, "resting": false, "left": 0.0, "start_y": throw[0].y, "hit": false}
+	var points = [f["pos"]]
+	var landed = false
+	for i in range(360): # 6 seconds of flight at most
+		_ball_step(f, space)
+		points.append(f["pos"])
+		if f["hit"]:
+			landed = true
+			break
+	# the dots, spread evenly along the path
+	var mm = arc_node.multimesh
+	var count = min(ARC_DOTS, points.size())
+	mm.visible_instance_count = count
+	for i in range(count):
+		var at = points[int(round(float(i) / max(1, count - 1) * (points.size() - 1)))]
+		mm.set_instance_transform(i, Transform(Basis(), at))
+	arc_node.visible = true
+	land_node.visible = landed
+	if landed:
+		var n = f["hit_normal"].normalized()
+		var side = n.cross(Vector3.FORWARD if abs(n.z) < 0.9 else Vector3.RIGHT).normalized()
+		land_node.global_transform = Transform(Basis(side, n, side.cross(n)), f["hit_at"] + n * 0.03)
+
+
+func _make_arc(parent):
+	if arc_node != null and is_instance_valid(arc_node):
+		arc_node.queue_free()
+		land_node.queue_free()
+	var dot_mat = SpatialMaterial.new()
+	dot_mat.flags_unshaded = true
+	dot_mat.flags_transparent = true
+	dot_mat.albedo_color = Color(0.55, 1.0, 1.0, 0.85)
+	var dot = SphereMesh.new()
+	dot.radius = 0.045
+	dot.height = 0.09
+	dot.radial_segments = 8
+	dot.rings = 4
+	dot.material = dot_mat
+	var mm = MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = dot
+	mm.instance_count = ARC_DOTS
+	arc_node = MultiMeshInstance.new()
+	arc_node.name = "EtherBallArc"
+	arc_node.multimesh = mm
+	arc_node.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(arc_node)
+	arc_node.global_transform = Transform()
+
+	var land_mat = SpatialMaterial.new()
+	land_mat.flags_unshaded = true
+	land_mat.flags_transparent = true
+	land_mat.albedo_color = Color(1.0, 0.75, 0.3, 0.6)
+	var disc = CylinderMesh.new()
+	disc.top_radius = 0.35
+	disc.bottom_radius = 0.35
+	disc.height = 0.02
+	disc.radial_segments = 24
+	disc.material = land_mat
+	land_node = MeshInstance.new()
+	land_node.name = "EtherBallLanding"
+	land_node.mesh = disc
+	land_node.cast_shadow = GeometryInstance.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(land_node)
 
 
 func _register_ball_item():
@@ -1111,7 +1201,20 @@ func _throw_ball(power = 1.0):
 		return false
 	last_throw = now
 
-	# where the camera looks: aiming higher throws further
+	var throw = _throw_from(owner_node, power)
+	var from = throw[0]
+	var velocity = throw[1]
+
+	my_ball_seq += 1
+	var net = get_node_or_null("/root/Network")
+	if steam != null and steam.has_method("setLobbyMemberData") and net != null and not net.PLAYING_OFFLINE and net.STEAM_LOBBY_ID > 0:
+		steam.setLobbyMemberData(net.STEAM_LOBBY_ID, BALL_KEY, "1;" + str(my_ball_seq) + ";" + _vec_text(from) + ";" + _vec_text(velocity))
+	_start_fetch(pet, from, velocity)
+	return true
+
+
+# where the ball leaves the hand and how fast: along where the camera looks, aiming higher throws further
+func _throw_from(owner_node, power):
 	var flat = _facing(owner_node)
 	var pitch = 0.0
 	var camera = owner_node.get_viewport().get_camera() if owner_node.get_viewport() != null else null
@@ -1124,13 +1227,7 @@ func _throw_ball(power = 1.0):
 	var velocity = (flat * cos(up) + Vector3.UP * sin(up)) * BALL_SPEED * power
 	var size = _player_size(owner_node)
 	var from = owner_node.global_transform.origin + Vector3.UP * 0.35 * size + flat * 0.45 * size
-
-	my_ball_seq += 1
-	var net = get_node_or_null("/root/Network")
-	if steam != null and steam.has_method("setLobbyMemberData") and net != null and not net.PLAYING_OFFLINE and net.STEAM_LOBBY_ID > 0:
-		steam.setLobbyMemberData(net.STEAM_LOBBY_ID, BALL_KEY, "1;" + str(my_ball_seq) + ";" + _vec_text(from) + ";" + _vec_text(velocity))
-	_start_fetch(pet, from, velocity)
-	return true
+	return [from, velocity]
 
 
 func _vec_text(v):
@@ -1221,41 +1318,7 @@ func _move_ball(f, space, delta):
 		f["acc"] -= BALL_STEP
 		if f["resting"]:
 			break
-		var v = f["vel"]
-		v.y -= BALL_GRAVITY * BALL_STEP
-		var from = f["pos"]
-		var to = from + v * BALL_STEP
-		var reach = v.normalized() * BALL_RADIUS if v.length() > 0.001 else Vector3()
-		var hit = space.intersect_ray(from, to + reach, [], 1 | 2) if space != null else {}
-		if hit.empty() and space != null and v.y <= 0.0:
-			# resting on or rolling along the ground
-			var below = space.intersect_ray(to, to + Vector3(0, -BALL_RADIUS - 0.02, 0), [], 1 | 2)
-			if not below.empty():
-				hit = below
-		if not hit.empty():
-			var n = hit["normal"]
-			to = hit["position"] + n * BALL_RADIUS
-			var into = v.dot(n)
-			if into < 0.0:
-				var along = v - n * into
-				if -into > 1.5:
-					v = along * 0.8 - n * into * BALL_BOUNCE # a bounce
-				else:
-					v = along * (1.0 - min(1.0, 2.5 * BALL_STEP)) # rolling, slowing down
-			if n.y > 0.6 and v.length() < 0.25:
-				f["still"] += BALL_STEP
-			else:
-				f["still"] = 0.0
-		else:
-			f["still"] = 0.0
-		f["pos"] = to
-		f["vel"] = v
-		f["left"] += BALL_STEP
-		if f["still"] > 0.3 or f["left"] > 10.0:
-			f["resting"] = true
-		if f["pos"].y < f["start_y"] - 60.0:
-			f["resting"] = true
-			f["lost"] = true
+		_ball_step(f, space)
 	var ball = f["ball"]
 	if is_instance_valid(ball):
 		var mesh = ball.get_node_or_null("Mesh")
@@ -1263,6 +1326,50 @@ func _move_ball(f, space, delta):
 		if mesh != null and flat.length() > 0.05 and not f["resting"]:
 			mesh.rotate(flat.normalized().cross(Vector3.UP).normalized(), -flat.length() * delta / BALL_RADIUS)
 		ball.global_transform.origin = f["pos"]
+
+
+# one 1/60 s step of the ball: the throw, the preview arc and every other player's copy all use this
+func _ball_step(f, space):
+	var v = f["vel"]
+	v.y -= BALL_GRAVITY * BALL_STEP
+	var from = f["pos"]
+	var to = from + v * BALL_STEP
+	var reach = v.normalized() * BALL_RADIUS if v.length() > 0.001 else Vector3()
+	var hit = space.intersect_ray(from, to + reach, [], 1 | 2) if space != null else {}
+	if hit.empty() and space != null and v.y <= 0.0:
+		# resting on or rolling along the ground
+		var below = space.intersect_ray(to, to + Vector3(0, -BALL_RADIUS - 0.02, 0), [], 1 | 2)
+		if not below.empty():
+			hit = below
+	f["hit"] = not hit.empty()
+	if not hit.empty():
+		f["hit_at"] = hit["position"]
+		f["hit_normal"] = hit["normal"]
+		if not f.has("first_hit"):
+			f["first_hit"] = hit["position"]
+		var n = hit["normal"]
+		to = hit["position"] + n * BALL_RADIUS
+		var into = v.dot(n)
+		if into < 0.0:
+			var along = v - n * into
+			if -into > 1.5:
+				v = along * 0.8 - n * into * BALL_BOUNCE # a bounce
+			else:
+				v = along * (1.0 - min(1.0, 2.5 * BALL_STEP)) # rolling, slowing down
+		if n.y > 0.6 and v.length() < 0.25:
+			f["still"] += BALL_STEP
+		else:
+			f["still"] = 0.0
+	else:
+		f["still"] = 0.0
+	f["pos"] = to
+	f["vel"] = v
+	f["left"] += BALL_STEP
+	if f["still"] > 0.3 or f["left"] > 10.0:
+		f["resting"] = true
+	if f["pos"].y < f["start_y"] - 60.0:
+		f["resting"] = true
+		f["lost"] = true
 
 
 # where the ball sits when the pet carries it
@@ -1340,8 +1447,11 @@ func _fetch(pet, owner_node, delta):
 		# close enough that the ball drops at its owner's feet
 		var at_feet = 1.15 * pet["scale"] + 0.45 * _player_size(owner_node)
 		if _run_to(pet, home, at_feet, speed, _feet_y(owner_node), delta):
-			# dropped at its owner's feet, a happy wiggle, and the ball is back in their hand
+			# dropped at its owner's feet, a happy wiggle and its happy sound (the one it makes when petted),
+			# and the ball is back in their hand
 			f["state"] = "drop"
+			var info = SPECIES[pet["species"]]
+			_say(pet, sounds.get(info["pet_sound"]), info["pet_pitch"])
 			f["t"] = 0.0
 			f["pos"] = _mouth(pet)
 			f["vel"] = _facing(node) * 0.6

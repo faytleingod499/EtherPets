@@ -1,3 +1,8 @@
+## 2.10.3
+- While you hold the mouse button to throw, a dotted arc shows the ball's flight and a disc marks where it will land
+  (only you see it). It uses the ball's own physics, so it lands right where the disc says.
+- Your pet makes its happy sound (the one it makes when petted) when it brings the ball back.
+
 ## 2.10.2
 - The ball is now called the **Tennis Ball** (no more "Microscopic" in front of its name).
 - A bar under the middle of the screen shows how hard you'll throw while you hold the mouse button; it turns orange at

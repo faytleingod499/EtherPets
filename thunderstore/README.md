@@ -37,8 +37,8 @@ and stroke its head, sized to fit your character, even a very small one.
 ## Fetch
 
 You get a **Tennis Ball** in your inventory. Put it on your hotbar, hold it, and click to throw it where you're looking:
-hold the mouse button longer (a bar shows how hard) and aim higher to throw further. It bounces off walls and rolls to a stop, your pet races
-after it, picks it up in its mouth, brings it back and drops it at your feet with a happy wiggle. If it was in your lap
+hold the mouse button longer (a bar shows how hard, and a dotted arc shows where it will land) and aim higher to throw further. It bounces off walls and rolls to a stop, your pet races
+after it, picks it up in its mouth, brings it back and drops it at your feet with a happy wiggle and a happy whine, purr or trill. If it was in your lap
 or on your head, it hops down first. A ball it can't reach (in the sea, off a cliff) is let go after a while and it
 comes back without it.
 
