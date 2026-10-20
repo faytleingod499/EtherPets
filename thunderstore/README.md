@@ -34,7 +34,14 @@ Press **P** or click the **paw button** (drag it anywhere, it remembers where) t
 Walk up to any pet and use the game's interact key on **Pet <name>**. It comes over and you lean down
 and stroke its head, sized to fit your character, even a very small one.
 
+## Fetch
+
+Press **X** to throw a ball where you're looking: aim higher to throw further. It bounces off walls and rolls to a
+stop, your pet races after it, picks it up in its mouth, brings it back and drops it at your feet with a happy wiggle.
+If it was in your lap or on your head, it hops down first. A ball it can't reach (in the sea, off a cliff) is let go
+after a while and it comes back without it.
+
 ## Multiplayer
 
 Your pet is shared through the Steam lobby, so everyone with EtherPets sees it exactly as you made it,
-and can pet it. Players without the mod don't see pets, and nothing changes for them.
+and can pet it, and sees it fetch your ball. Players without the mod don't see pets, and nothing changes for them.

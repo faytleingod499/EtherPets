@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.9.10"
+const VERSION = "2.10.0"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -32,6 +32,19 @@ const TELEPORT_DIST = 16.0 # this far behind it just appears next to its owner a
 const WALK_SPEED = 3.0
 const RUN_SPEED = 7.5
 const SIT_AFTER = 5.0      # seconds of standing still before it sits down
+
+# fetch: X throws a ball where the camera looks, the pet runs after it and brings it back
+const BALL_KEY = "etherball" # "1;<throw number>;<x,y,z where it left the hand>;<x,y,z speed>", the last throw
+const BALL_RADIUS = 0.09
+const BALL_SPEED = 15.0
+const BALL_GRAVITY = 18.0
+const BALL_BOUNCE = 0.5      # how much of its speed into the ground it keeps on a bounce
+const BALL_STEP = 1.0 / 60.0
+const FETCH_SPEED = 9.0      # it really runs for a ball
+const FETCH_GIVE_UP = 25.0   # seconds; a ball it can't reach (in the sea, up a cliff) is let go
+const THROW_COOLDOWN_MS = 600
+# where the ball sits in its mouth: in its head bone's own space, model units (bone y = forward, z = down)
+const MOUTH = {"wolf": Vector3(0, 0.64, 0.22), "cat": Vector3(0, 0.43, 0.14), "raccoon": Vector3(0, 0.58, 0.12)}
 
 # the parts that can be coloured: key, label, the model's material for it.
 # The first six keep their places (older versions of the mod read the lobby text by position).
@@ -162,6 +175,11 @@ var pats = {}
 var my_pat_seq = 0
 var pat_read_timer = 0.0
 var remote_pat_seen = {}
+var my_ball_seq = 0
+var ball_seen = {} # steam id -> the throw number last seen from them
+var ball_read_timer = 0.0
+var last_throw = -100000
+var ball_material = null
 var area_script = null
 
 # the paw button and the menu
@@ -328,6 +346,12 @@ func _process(delta):
 		pat_read_timer = 0.0
 		_read_remote_pats(lobby, net)
 
+	# someone throwing a ball for their pet
+	ball_read_timer += delta
+	if ball_read_timer >= 0.2:
+		ball_read_timer = 0.0
+		_read_remote_balls(lobby)
+
 	_update_pets(delta, net)
 	_update_pats(delta)
 
@@ -405,7 +429,7 @@ func _update_pets(delta, net):
 		if pet["area"] != null and is_instance_valid(pet["area"]):
 			var name = str(wanted[key][4])
 			pet["area"].text = "Pet " + (name if name != "" else SPECIES[pet["species"]]["label"].to_lower())
-			pet["area"].visible = pet["pat"] == null and pet["lap"] == "" and not pet["anim_name"] in ["wolf_sit", "wolf_lie", "cat_curl", "raccoon_flop", "raccoon_sit"]
+			pet["area"].visible = pet["pat"] == null and pet["lap"] == "" and pet.get("fetch") == null and not pet["anim_name"] in ["wolf_sit", "wolf_lie", "cat_curl", "raccoon_flop", "raccoon_sit"]
 
 
 # --- making a pet ---
@@ -470,7 +494,7 @@ func _make_pet(owner_node, kind):
 		"area": area, "pat": null, "skeleton": model.find_node("Skeleton", true, false),
 		"scale": PET_SCALE, "size": 1.0, "side": 0, "label": _make_label(), "species": kind, "spin": spin, "lap": "", "hop_t": 0.0, "hop_from": Vector3(),
 		"voice": _make_voice(node), "barking": false, "howl_wait": -1.0, "howl_t": -1.0,
-		"howl_on": true, "last_answer": -10000000, "told_side": 0, "key": ""}
+		"howl_on": true, "last_answer": -10000000, "told_side": 0, "key": "", "fetch": null}
 	_play(pet, "wolf_idle", 1.0)
 	return pet
 
@@ -658,6 +682,7 @@ func _paint(pet, cfg_colors):
 func _remove_pet(key):
 	if not pets.has(key):
 		return
+	_end_fetch(pets[key])
 	var node = pets[key]["node"]
 	if is_instance_valid(node):
 		node.queue_free()
@@ -687,6 +712,11 @@ func _move_pet(pet, owner_node, delta):
 		if v < 200.0:
 			pet["owner_speed"] = lerp(pet.get("owner_speed", 0.0), v, clamp(delta * 5.0, 0.0, 1.0))
 	var owner_speed = pet.get("owner_speed", 0.0)
+
+	# a ball is out: that comes first
+	if pet.get("fetch") != null:
+		_fetch(pet, owner_node, delta)
+		return
 
 	# it only gives up and pops back next to its owner when it really cannot keep up
 	if dist > max(TELEPORT_DIST, owner_speed * 2.5):
@@ -814,6 +844,282 @@ func _stride_rate(speed):
 	if speed <= RUN_SPEED:
 		return clamp(0.6 + speed * 0.45, 0.8, 4.2)
 	return min(4.0 + (speed - RUN_SPEED) * 0.15, 9.0)
+
+
+# --- fetch ---
+# The ball is thrown on its owner's screen and the throw (where it left the hand, how fast) goes into the lobby, so
+# every player's game throws the same ball and their copy of the pet fetches it. The ball moves the same everywhere
+# (same throw, same ground), so the pets do the same.
+
+# only while nothing else is open (the game's own menus, a popup)
+func _hud_free():
+	var hud = _get_hud()
+	if hud == null:
+		return false
+	if hud.get("menu") != 0 or hud.get("hud_hidden") == true:
+		return false
+	var popups = hud.get("popups")
+	return typeof(popups) != TYPE_ARRAY or popups.empty()
+
+
+func _throw_ball():
+	if not pets.has("me") or not show_pet:
+		return false
+	var pet = pets["me"]
+	var owner_node = pet["owner"]
+	if not is_instance_valid(owner_node) or pet["pat"] != null or pet.get("fetch") != null:
+		return false # one ball at a time, it has to bring it back first
+	var now = OS.get_ticks_msec()
+	if now - last_throw < THROW_COOLDOWN_MS:
+		return false
+	last_throw = now
+
+	# where the camera looks: aiming higher throws further
+	var flat = _facing(owner_node)
+	var pitch = 0.0
+	var camera = owner_node.get_viewport().get_camera() if owner_node.get_viewport() != null else null
+	if camera != null:
+		var aim = -camera.global_transform.basis.z
+		if Vector2(aim.x, aim.z).length() > 0.05:
+			flat = Vector3(aim.x, 0, aim.z).normalized()
+		pitch = asin(clamp(aim.y, -1.0, 1.0))
+	var up = clamp(pitch + deg2rad(20.0), deg2rad(5.0), deg2rad(70.0))
+	var velocity = flat * cos(up) * BALL_SPEED + Vector3.UP * sin(up) * BALL_SPEED
+	var size = _player_size(owner_node)
+	var from = owner_node.global_transform.origin + Vector3.UP * 0.35 * size + flat * 0.45 * size
+
+	my_ball_seq += 1
+	var net = get_node_or_null("/root/Network")
+	if steam != null and steam.has_method("setLobbyMemberData") and net != null and not net.PLAYING_OFFLINE and net.STEAM_LOBBY_ID > 0:
+		steam.setLobbyMemberData(net.STEAM_LOBBY_ID, BALL_KEY, "1;" + str(my_ball_seq) + ";" + _vec_text(from) + ";" + _vec_text(velocity))
+	_start_fetch(pet, from, velocity)
+	return true
+
+
+func _vec_text(v):
+	return "%.3f,%.3f,%.3f" % [v.x, v.y, v.z]
+
+
+func _text_vec(text):
+	var bits = str(text).split(",")
+	if bits.size() != 3 or not bits[0].is_valid_float() or not bits[1].is_valid_float() or not bits[2].is_valid_float():
+		return null
+	return Vector3(float(bits[0]), float(bits[1]), float(bits[2]))
+
+
+func _read_remote_balls(lobby):
+	if lobby <= 0 or steam == null or not steam.has_method("getLobbyMemberData"):
+		return
+	for key in pets.keys():
+		if typeof(key) != TYPE_INT:
+			continue
+		var bits = str(steam.getLobbyMemberData(lobby, key, BALL_KEY)).split(";")
+		if bits.size() < 4 or bits[0] != "1" or not bits[1].is_valid_integer():
+			continue
+		var seq = int(bits[1])
+		# the first time I see someone's pet, their last throw is old news
+		if not ball_seen.has(key):
+			ball_seen[key] = seq
+			continue
+		if seq == ball_seen[key]:
+			continue
+		ball_seen[key] = seq
+		var from = _text_vec(bits[2])
+		var velocity = _text_vec(bits[3])
+		if from == null or velocity == null or velocity.length() > 40.0:
+			continue
+		_start_fetch(pets[key], from, velocity)
+
+
+func _start_fetch(pet, from, velocity):
+	_end_fetch(pet)
+	var parent = pet["node"].get_parent()
+	if parent == null:
+		return
+	var ball = _make_ball()
+	parent.add_child(ball)
+	ball.global_transform.origin = from
+	pet["fetch"] = {"ball": ball, "pos": from, "vel": velocity, "state": "free", "t": 0.0, "still": 0.0,
+		"resting": false, "start_y": from.y, "left": 0.0, "acc": 0.0}
+
+
+func _end_fetch(pet):
+	var f = pet.get("fetch")
+	if f == null:
+		return
+	if is_instance_valid(f["ball"]):
+		f["ball"].queue_free()
+	pet["fetch"] = null
+
+
+# a tennis ball: yellow-green, with a shadow under it like everything else in the game
+func _make_ball():
+	var root = Spatial.new()
+	root.name = "EtherBall"
+	var mesh = MeshInstance.new()
+	mesh.name = "Mesh"
+	var sphere = SphereMesh.new()
+	sphere.radius = BALL_RADIUS
+	sphere.height = BALL_RADIUS * 2.0
+	sphere.radial_segments = 16
+	sphere.rings = 8
+	mesh.mesh = sphere
+	if ball_material == null:
+		ball_material = SpatialMaterial.new()
+		ball_material.albedo_color = Color(0.82, 0.93, 0.25)
+		ball_material.roughness = 0.9
+	mesh.material_override = ball_material
+	root.add_child(mesh)
+	if shadow_scene != null:
+		var shadow = shadow_scene.instance()
+		shadow.scale = Vector3.ONE * 0.35
+		root.add_child(shadow)
+	return root
+
+
+# the ball flying, bouncing and rolling, in small fixed steps so it lands the same on every screen
+func _move_ball(f, space, delta):
+	f["acc"] += min(delta, 0.1)
+	while f["acc"] >= BALL_STEP:
+		f["acc"] -= BALL_STEP
+		if f["resting"]:
+			break
+		var v = f["vel"]
+		v.y -= BALL_GRAVITY * BALL_STEP
+		var from = f["pos"]
+		var to = from + v * BALL_STEP
+		var reach = v.normalized() * BALL_RADIUS if v.length() > 0.001 else Vector3()
+		var hit = space.intersect_ray(from, to + reach, [], 1 | 2) if space != null else {}
+		if hit.empty() and space != null and v.y <= 0.0:
+			# resting on or rolling along the ground
+			var below = space.intersect_ray(to, to + Vector3(0, -BALL_RADIUS - 0.02, 0), [], 1 | 2)
+			if not below.empty():
+				hit = below
+		if not hit.empty():
+			var n = hit["normal"]
+			to = hit["position"] + n * BALL_RADIUS
+			var into = v.dot(n)
+			if into < 0.0:
+				var along = v - n * into
+				if -into > 1.5:
+					v = along * 0.8 - n * into * BALL_BOUNCE # a bounce
+				else:
+					v = along * (1.0 - min(1.0, 2.5 * BALL_STEP)) # rolling, slowing down
+			if n.y > 0.6 and v.length() < 0.25:
+				f["still"] += BALL_STEP
+			else:
+				f["still"] = 0.0
+		else:
+			f["still"] = 0.0
+		f["pos"] = to
+		f["vel"] = v
+		f["left"] += BALL_STEP
+		if f["still"] > 0.3 or f["left"] > 10.0:
+			f["resting"] = true
+		if f["pos"].y < f["start_y"] - 60.0:
+			f["resting"] = true
+			f["lost"] = true
+	var ball = f["ball"]
+	if is_instance_valid(ball):
+		var mesh = ball.get_node_or_null("Mesh")
+		var flat = Vector3(f["vel"].x, 0, f["vel"].z)
+		if mesh != null and flat.length() > 0.05 and not f["resting"]:
+			mesh.rotate(flat.normalized().cross(Vector3.UP).normalized(), -flat.length() * delta / BALL_RADIUS)
+		ball.global_transform.origin = f["pos"]
+
+
+# where the ball sits when the pet carries it
+func _mouth(pet):
+	var ws = pet["skeleton"]
+	if ws == null or not is_instance_valid(ws) or ws.find_bone("head") < 0:
+		return pet["node"].global_transform.origin + _facing(pet["node"]) * 1.2 * pet["scale"] + Vector3.UP * 0.8 * pet["scale"]
+	var local = MOUTH.get(pet["species"], MOUTH["wolf"])
+	return ws.global_transform.xform(ws.get_bone_global_pose(ws.find_bone("head")).xform(local))
+
+
+# runs (or rolls) toward a spot; true once it is within stop of it
+func _run_to(pet, target, stop, speed, fallback_y, delta):
+	var node = pet["node"]
+	var pos = node.global_transform.origin
+	var to = Vector3(target.x - pos.x, 0, target.z - pos.z)
+	var dist = to.length()
+	if dist <= stop + 0.05: # a little slack, each step only closes part of the gap
+		pet["speed"] = lerp(pet["speed"], 0.0, clamp(delta * 10.0, 0.0, 1.0))
+		if dist > 0.05:
+			node.rotation.y = lerp_angle(node.rotation.y, atan2(-to.x, -to.z), clamp(delta * 8.0, 0.0, 1.0))
+		node.global_transform.origin = _ground(node, pos, fallback_y, pos.y, delta)
+		return true
+	var want = clamp((dist - stop) * 3.0, WALK_SPEED * 0.6, speed)
+	pet["speed"] = lerp(pet["speed"], want, clamp(delta * 6.0, 0.0, 1.0))
+	pos += to / dist * min(pet["speed"] * delta, dist - stop)
+	node.global_transform.origin = _ground(node, pos, fallback_y, pos.y, delta)
+	node.rotation.y = lerp_angle(node.rotation.y, atan2(-to.x, -to.z), clamp(delta * 10.0, 0.0, 1.0))
+	pet["still"] = 0.0
+	pet["sat"] = 0.0
+	_locomote(pet, delta)
+	return false
+
+
+func _fetch(pet, owner_node, delta):
+	var f = pet["fetch"]
+	var node = pet["node"]
+	if not is_instance_valid(f["ball"]):
+		pet["fetch"] = null
+		return
+	var space = node.get_world().direct_space_state if node.get_world() != null else null
+	f["t"] += delta
+	var speed = max(FETCH_SPEED * (0.7 + 0.3 * pet["size"]), pet.get("owner_speed", 0.0) * 1.3 + 3.0)
+
+	# in a lap or on a head: down first
+	if pet["lap"] != "" and pet["lap"] != "go":
+		_move_ball(f, space, delta)
+		_hop_down(pet, owner_node, delta)
+		return
+	pet["lap"] = ""
+	pet["side"] = 0
+
+	if f["state"] == "free":
+		_move_ball(f, space, delta)
+		# out of reach (in the sea, off a cliff, too long): it lets it go and comes back
+		if f.get("lost", false) or f["t"] > FETCH_GIVE_UP:
+			_end_fetch(pet)
+			return
+		var ground_y = _ground(node, f["pos"], f["pos"].y)
+		var reach = 1.1 * pet["scale"] + 0.15
+		var low = f["pos"].y - ground_y.y < 0.45 * pet["scale"] + 0.2
+		if _run_to(pet, f["pos"], reach * 0.8, speed, f["pos"].y, delta):
+			if low:
+				f["state"] = "carry" # got it
+			else:
+				_play(pet, "wolf_idle", 1.0) # waiting for it to come down
+		return
+
+	if f["state"] == "carry":
+		f["ball"].global_transform.origin = _mouth(pet)
+		var home = owner_node.global_transform.origin
+		if Vector2(home.x - node.global_transform.origin.x, home.z - node.global_transform.origin.z).length() > 80.0:
+			_end_fetch(pet) # its owner went somewhere else entirely
+			return
+		# close enough that the ball drops at its owner's feet
+		var at_feet = 1.15 * pet["scale"] + 0.45 * _player_size(owner_node)
+		if _run_to(pet, home, at_feet, speed, _feet_y(owner_node), delta):
+			# dropped at its owner's feet, a happy wiggle, and the ball is back in their hand
+			f["state"] = "drop"
+			f["t"] = 0.0
+			f["pos"] = _mouth(pet)
+			f["vel"] = _facing(node) * 0.6
+			f["resting"] = false
+			f["still"] = 0.0
+			f["left"] = 0.0
+		return
+
+	if f["state"] == "drop":
+		_move_ball(f, space, delta)
+		_run_to(pet, owner_node.global_transform.origin, 1000.0, 0.0, _feet_y(owner_node), delta)
+		_play(pet, "wolf_happy", 1.0)
+		if f["t"] > 1.4:
+			_end_fetch(pet)
+			pet["still"] = 0.0
 
 
 # --- in its owner's lap (a cat) or on their head (a raccoon) ---
@@ -1316,6 +1622,11 @@ func _build_ui():
 	_add_tooltip(howl_box, "Answer", "Your pet answers when you bark or meow (a wolf howls, a cat meows), at most once every 2 minutes")
 	column.add_child(howl_box)
 
+	var fetch_hint = Label.new()
+	fetch_hint.text = "Press X to throw a ball for your pet"
+	fetch_hint.add_color_override("font_color", Color(0.75, 0.95, 1.0))
+	column.add_child(fetch_hint)
+
 	var cd_row = HBoxContainer.new()
 	cd_row.add_constant_override("separation", 8)
 	column.add_child(cd_row)
@@ -1500,6 +1811,13 @@ func _input(event):
 	if menu_open and event is InputEventKey and event.pressed and event.scancode == KEY_ESCAPE:
 		_set_menu(false)
 		get_tree().set_input_as_handled()
+		return
+
+	# X throws a ball for my pet (the game has nothing on X)
+	if event is InputEventKey and event.pressed and not event.echo and event.scancode == KEY_X:
+		if not _typing() and not menu_open and _hud_free():
+			if _throw_ball():
+				get_tree().set_input_as_handled()
 
 
 func _typing():

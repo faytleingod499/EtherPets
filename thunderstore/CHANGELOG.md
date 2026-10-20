@@ -1,3 +1,9 @@
+## 2.10.0
+- **Fetch!** Press **X** to throw a ball where you're looking (aim higher to throw further). It bounces and rolls,
+  your pet races after it, grabs it, brings it back and drops it at your feet with a happy wiggle. A cat in your lap or
+  a raccoon on your head hops down first. One ball at a time: throw again once it's brought back.
+- Everyone with EtherPets sees your throw and your pet fetching it.
+
 ## 2.9.10
 - The mod has its own GitHub repository now: https://github.com/faytleingod499/EtherPets
 - Released under the MIT License: you're free to copy, change and share your own versions.
