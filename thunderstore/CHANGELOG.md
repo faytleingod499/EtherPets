@@ -1,3 +1,8 @@
+## 2.10.7
+- Pets follow you up and down: when you climb a ladder or ride a blue mushroom onto higher ground, your pet comes up
+  onto it too instead of staying at the old height inside the ground. If it's ever left more than 5 m above or below
+  you while you stand on solid ground, it pops back beside you.
+
 ## 2.10.6
 - Your pet waits half a second (was a second) before it runs after the ball.
 

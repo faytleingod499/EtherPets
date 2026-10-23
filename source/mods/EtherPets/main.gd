@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.10.6"
+const VERSION = "2.10.7"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -755,8 +755,11 @@ func _move_pet(pet, owner_node, delta):
 		_fetch(pet, owner_node, delta)
 		return
 
-	# it only gives up and pops back next to its owner when it really cannot keep up
-	if dist > max(TELEPORT_DIST, owner_speed * 2.5):
+	# it only gives up and pops back next to its owner when it really cannot keep up, or when it's left far below
+	# (or above) them while they stand on solid ground
+	var height_gap = abs(node.global_transform.origin.y - _feet_y(owner_node))
+	var owner_grounded = owner_node.has_method("is_on_floor") and owner_node.is_on_floor()
+	if dist > max(TELEPORT_DIST, owner_speed * 2.5) or (owner_grounded and height_gap > 5.0 and pet["lap"] == ""):
 		var back = Vector3(1.0, 0, 1.0).normalized() * _near(pet)
 		node.global_transform.origin = _ground(node, target + back, _feet_y(owner_node))
 		pet["speed"] = 0.0
@@ -1647,7 +1650,12 @@ func _ground(node, pos, fallback_y, current_y = null, delta = 0.0):
 	var y = fallback_y
 	var space = node.get_world().direct_space_state if node.get_world() != null else null
 	if space != null:
-		var hit = space.intersect_ray(pos + Vector3(0, 1.5, 0), pos + Vector3(0, -4.0, 0), [], 1 | 2)
+		# Looks down from above whichever is higher, the pet or where it's going (its owner's feet): looking only from
+		# its own height, a pet following its owner up a ladder or a blue mushroom started inside the cliff, found no
+		# ground and stayed down there, inside the ground.
+		var top = max(pos.y, fallback_y) + 1.5
+		var bottom = min(pos.y, fallback_y) - 4.0
+		var hit = space.intersect_ray(Vector3(pos.x, top, pos.z), Vector3(pos.x, bottom, pos.z), [], 1 | 2)
 		if not hit.empty():
 			y = hit["position"].y
 	if current_y != null:
