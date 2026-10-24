@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.12.15"
+const VERSION = "2.12.16"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -114,7 +114,7 @@ const SPECIES = {
 		"derive": {"legs": "fur"},
 		"pet_sound": "res://mods/EtherPets/fox_coo.wav", "pet_pitch": 1.0,   # a soft, wavering coo
 		"call_sound": "res://mods/EtherPets/fox_yip.wav", "call_pitch": 1.0, # three sharp yips back
-		"call_time": 1.0, "call_lift": 22.0,
+		"call_time": 1.9, "call_lift": 22.0,
 		"presets": [
 			["Red", {"fur": "d9772b", "back": "b85a1c", "belly": "f6ece0", "eyes": "2a1c10", "nose": "1c1c20", "ears": "e8b8b0",
 				"earback": "3a2a22", "legs": "3a2a22", "hindlegs": "3a2a22", "paws": "2a2020", "tail": "fbf6ee", "muzzle": "f6ece0", "throat": "f6ece0"}],

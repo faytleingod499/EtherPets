@@ -1,3 +1,6 @@
+## 2.12.16
+- New fox sounds, modelled on a real fox: a quick run of chirpy gekkers when it answers a bark and a few softer chirps when petted.
+
 ## 2.12.15
 - The curled-up fox sits a touch further forward on the head.
 - The fox has its own sounds: three sharp yips when it answers a bark, and a soft coo when petted.
