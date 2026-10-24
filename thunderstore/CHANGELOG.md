@@ -1,3 +1,6 @@
+## 2.11.1
+- The fox's snout is a bit shorter.
+
 ## 2.11.0
 - New pet: a **fox**. A slim body, a long snout, big pointed ears and a bushy tail with a white tip. Pick it with the new fox face button.
   Ready-made looks: Red, Arctic and Silver. Every colour area works like the wolf's (it also has its own neck, throat and tail tip), it lies down beside you when you sit, and it fetches the Pet Ball.

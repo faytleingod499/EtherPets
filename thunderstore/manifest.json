@@ -1,6 +1,6 @@
 {
     "name": "EtherPets",
-    "version_number": "2.11.0",
+    "version_number": "2.11.1",
     "website_url": "https://github.com/faytleingod499/EtherPets",
     "description": "A pet wolf, fox, cat or raccoon that follows you around, in colours you pick. Pet it, name it, sit with it. Other players with the mod see your pet too. Works on any server. This mod was created with the assistance of AI.",
     "dependencies": [

@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.11.0"
+const VERSION = "2.11.1"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -49,7 +49,7 @@ const FETCH_WAIT = 0.5       # seconds it watches the ball fly before it runs af
 const FETCH_GIVE_UP = 25.0   # seconds; a ball it can't reach (in the sea, up a cliff) is let go
 const THROW_COOLDOWN_MS = 600
 # where the ball sits in its mouth: in its head bone's own space, model units (bone y = forward, z = down)
-const MOUTH = {"wolf": Vector3(0, 0.64, 0.22), "cat": Vector3(0, 0.43, 0.14), "raccoon": Vector3(0, 0.58, 0.12), "fox": Vector3(0, 0.80, 0.22)}
+const MOUTH = {"wolf": Vector3(0, 0.64, 0.22), "cat": Vector3(0, 0.43, 0.14), "raccoon": Vector3(0, 0.58, 0.12), "fox": Vector3(0, 0.70, 0.22)}
 
 # the parts that can be coloured: key, label, the model's material for it.
 # The first six keep their places (older versions of the mod read the lobby text by position).

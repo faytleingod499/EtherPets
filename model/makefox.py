@@ -28,7 +28,7 @@ def fox_positions(g, P):
         if name in head_names:
             front=(z>0.85)&(y>0.7)
             tt=np.where(front,t,0)
-            p[:,2]=p[:,2]+0.22*tt
+            p[:,2]=p[:,2]+0.12*tt
             # narrower snout (not the eyes: they stay at the sides of the face)
             if name in ('pet_muzzle','pet_black','pet_mouth','pet_tongue'):
                 p[:,0]=p[:,0]*(1-0.30*tt)
