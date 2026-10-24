@@ -101,8 +101,36 @@ def refit_ear_points(p, H, size=(0.78, 0.78, 0.8)):
         d = q[tip] - c
         d[:, 0] *= EAR_TIP_WIDEN; d[:, 2] *= EAR_TIP_WIDEN
         q[tip] = c + d - np.array([0, EAR_TIP_DROP, 0])
+        # a bit shorter: squashed down toward the base (same height for the inner and outer ear)
+        q[:, 1] = EAR_BASE_Y + (q[:, 1] - EAR_BASE_Y) * EAR_SHORTEN
         p[m] = q
     return p
 
 EAR_TILT, EAR_IN, EAR_SINK = 20.0, 0.03, 0.02
 EAR_TIP_BAND, EAR_TIP_WIDEN, EAR_TIP_DROP = 0.03, 2.6, 0.025
+EAR_BASE_Y, EAR_SHORTEN = 1.11, 0.87
+
+def recompute_normals(g,P):
+    norms=[]
+    for pr,pos in zip(g.j['meshes'][0]['primitives'],P):
+        idx=g.acc(pr['indices']).reshape(-1,3)
+        n=np.zeros_like(pos)
+        a,b,c=pos[idx[:,0]],pos[idx[:,1]],pos[idx[:,2]]
+        fn=np.cross(b-a,c-a)
+        for k in range(3): np.add.at(n,idx[:,k],fn)
+        ln=np.linalg.norm(n,axis=1,keepdims=True); ln[ln==0]=1
+        norms.append((n/ln).astype(np.float32))
+    return norms
+
+if __name__=='__main__':
+    g=Glb('/home/claude/etherpets/model/pet_wolf.glb')
+    P0=[g.acc(pr['attributes']['POSITION']) for pr in g.j['meshes'][0]['primitives']]
+    P=fox_positions(g,P0)
+    N=recompute_normals(g,P)
+    for pr,p,n in zip(g.j['meshes'][0]['primitives'],P,N):
+        g.set_acc(pr['attributes']['POSITION'],p.astype(np.float32))
+        g.set_acc(pr['attributes']['NORMAL'],n)
+    g.j['meshes'][0]['name']='Fox'
+    g.save('/home/claude/fox/pet_fox.glb')
+    render(load_prims(g,P),path='fox.png')
+    # side by side with the wolf on the same extents

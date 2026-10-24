@@ -1,3 +1,6 @@
+## 2.12.12
+- The fox's ears are back: rounder tips, a bit shorter, leaning apart so their bases sit on the head. (An earlier build had dropped this change.)
+
 ## 2.12.11
 - The curled-up fox now sits centred on your head (it was off to one side and behind), turned so its face looks out the same way you do.
 
