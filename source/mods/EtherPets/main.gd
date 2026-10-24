@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.12.18"
+const VERSION = "2.12.19"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -2260,6 +2260,8 @@ func _set_menu(open):
 	if open:
 		_apply_to_pickers()
 		_place_menu()
+		# the first time it opens the controls have not been laid out yet, so its size is not known: place it again once they have
+		call_deferred("_place_menu")
 		_lock_hud()
 	else:
 		for key in pickers.keys():
@@ -2276,6 +2278,7 @@ func _place_menu():
 	if not menu.visible:
 		return
 	var area = get_viewport().get_visible_rect().size
+	menu.rect_size = Vector2()
 	var size = menu.get_combined_minimum_size()
 	menu.rect_size = size
 	var pos = paw.rect_position + Vector2(paw.rect_size.x + 6, 0)

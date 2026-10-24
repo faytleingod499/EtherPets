@@ -1,3 +1,6 @@
+## 2.12.19
+- Fixed: the pets menu no longer runs off the bottom of the screen the first time it is opened.
+
 ## 2.12.18
 - Fixed: the fox's new sounds were missing from the mod file, so they never played.
 
