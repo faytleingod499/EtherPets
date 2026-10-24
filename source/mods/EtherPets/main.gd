@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.12.14"
+const VERSION = "2.12.15"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -109,12 +109,12 @@ const SPECIES = {
 	"fox": {
 		# the wolf's skeleton and animations, in a slimmer body with a long snout, big ears and a bushy tail
 		"label": "Fox", "model": "res://mods/EtherPets/fox.scn", "scale": 0.68, "move": "walk", "sit": "head",
-		"perch_anim": "fox_curl", "perch_centre": Vector3(-0.239, 0, 0.322), "perch_turn": deg2rad(145), "perch_drop": 0.09, "hop_anim": "fox_leap", "hop_time": 0.6, # pounces up onto its owner's head and curls up
+		"perch_anim": "fox_curl", "perch_centre": Vector3(-0.239, 0, 0.322), "perch_turn": deg2rad(145), "perch_drop": 0.09, "perch_forward": 0.04, "hop_anim": "fox_leap", "hop_time": 0.6, # pounces up onto its owner's head and curls up
 		"parts": STANDARD_PARTS + ["neck", "throat", "tail"],
 		"derive": {"legs": "fur"},
-		"pet_sound": "res://Sounds/dog_whine.ogg", "pet_pitch": 1.6,       # a high, happy whine
-		"call_sound": "res://Sounds/dog_bark.ogg", "call_pitch": 1.9,      # a yip back
-		"call_time": 0.9, "call_lift": 22.0,
+		"pet_sound": "res://mods/EtherPets/fox_coo.wav", "pet_pitch": 1.0,   # a soft, wavering coo
+		"call_sound": "res://mods/EtherPets/fox_yip.wav", "call_pitch": 1.0, # three sharp yips back
+		"call_time": 1.0, "call_lift": 22.0,
 		"presets": [
 			["Red", {"fur": "d9772b", "back": "b85a1c", "belly": "f6ece0", "eyes": "2a1c10", "nose": "1c1c20", "ears": "e8b8b0",
 				"earback": "3a2a22", "legs": "3a2a22", "hindlegs": "3a2a22", "paws": "2a2020", "tail": "fbf6ee", "muzzle": "f6ece0", "throat": "f6ece0"}],
@@ -1576,6 +1576,7 @@ func _perch_spot(pet, owner_node, mode):
 		var spot = _head_top(owner_node) - _facing(owner_node) * HEAD_BACK * _player_size(owner_node)
 		# put the middle of a curl over the head (perch_centre: the middle of the curl in the pet node's space at size 1)
 		var centre = SPECIES[pet["species"]].get("perch_centre", Vector3.ZERO)
+		spot += _facing(owner_node) * SPECIES[pet["species"]].get("perch_forward", 0.0) * _player_size(owner_node)
 		spot -= Vector3.UP * SPECIES[pet["species"]].get("perch_drop", 0.0) * pet["scale"] * _player_size(owner_node)
 		return [spot - Basis(Vector3.UP, yaw).xform(centre * pet["scale"]), yaw]
 	var basis = Basis(Vector3.UP, yaw)

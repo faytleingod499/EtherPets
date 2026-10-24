@@ -1,3 +1,7 @@
+## 2.12.15
+- The curled-up fox sits a touch further forward on the head.
+- The fox has its own sounds: three sharp yips when it answers a bark, and a soft coo when petted.
+
 ## 2.12.14
 - The curled-up fox sits lower on its owner's head.
 
