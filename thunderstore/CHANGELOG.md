@@ -1,3 +1,7 @@
+## 2.12.4
+- The fox's ears are smaller and sit snugly on its head.
+- Curled up, the fox turns the tip of its tail in toward its body and keeps all four legs tucked in the middle of the curl.
+
 ## 2.12.3
 - The curled-up fox now wraps its bushy tail round the front and lays its head on top of it, snout resting on the tail, like a real sleeping fox.
 

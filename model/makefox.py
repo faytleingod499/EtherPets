@@ -52,29 +52,30 @@ def fox_positions(g, P):
             if name=='pet_tail': grow=grow*1.05
             p=a0+np.outer(along,ax)+radial*grow[:,None]
         out.append(p)
+    return ear_refit(names, out)
+
+EAR_NAMES = ('pet_ear_inner', 'pet_ear_back')
+HEAD_SURFACE = ('pet_head', 'pet_fur', 'pet_face')
+
+def ear_refit(names, P):
+    """Smaller ears whose bottoms sit flush on the head. Works on the already warped positions
+    (the same step is applied to the fox mesh in the .blend, so both stay in step)."""
+    H = np.vstack([p for n, p in zip(names, P) if n in HEAD_SURFACE])
+    out = []
+    for n, p in zip(names, P):
+        if n in EAR_NAMES:
+            out.append(refit_ear_points(p, H))
+        else:
+            out.append(p)
     return out
 
-def recompute_normals(g,P):
-    norms=[]
-    for pr,pos in zip(g.j['meshes'][0]['primitives'],P):
-        idx=g.acc(pr['indices']).reshape(-1,3)
-        n=np.zeros_like(pos)
-        a,b,c=pos[idx[:,0]],pos[idx[:,1]],pos[idx[:,2]]
-        fn=np.cross(b-a,c-a)
-        for k in range(3): np.add.at(n,idx[:,k],fn)
-        ln=np.linalg.norm(n,axis=1,keepdims=True); ln[ln==0]=1
-        norms.append((n/ln).astype(np.float32))
-    return norms
-
-if __name__=='__main__':
-    g=Glb('/home/claude/etherpets/model/pet_wolf.glb')
-    P0=[g.acc(pr['attributes']['POSITION']) for pr in g.j['meshes'][0]['primitives']]
-    P=fox_positions(g,P0)
-    N=recompute_normals(g,P)
-    for pr,p,n in zip(g.j['meshes'][0]['primitives'],P,N):
-        g.set_acc(pr['attributes']['POSITION'],p.astype(np.float32))
-        g.set_acc(pr['attributes']['NORMAL'],n)
-    g.j['meshes'][0]['name']='Fox'
-    g.save('/home/claude/fox/pet_fox.glb')
-    render(load_prims(g,P),path='fox.png')
-    # side by side with the wolf on the same extents
+def refit_ear_points(p, H, size=(0.78, 0.78, 0.8)):
+    """Shrinks each ear about the middle of its base, so the base stays down on the head."""
+    p = p.copy()
+    side = np.where(p[:, 0] >= 0, 1.0, -1.0)
+    for s in (1.0, -1.0):
+        m = side == s
+        q = p[m]
+        piv = np.array([s * 0.13, q[:, 1].min() + 0.01, 0.5 * (q[:, 2].min() + q[:, 2].max())])
+        p[m] = piv + (q - piv) * np.array(size)
+    return p
