@@ -1,3 +1,6 @@
+## 2.12.7
+- The tips of the fox's ears are rounder.
+
 ## 2.12.6
 - The fox's ears lean slightly apart and sit fully on its head, with no edge hanging off the side.
 

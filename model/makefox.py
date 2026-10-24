@@ -90,7 +90,14 @@ def refit_ear_points(p, H, size=(0.78, 0.78, 0.8)):
         q = (q - piv) @ R.T + piv
         q[:, 0] -= s * EAR_IN
         q[:, 1] -= EAR_SINK
+        # a rounder tip: the little cap of points at the top is widened and lowered a touch
+        tip = q[:, 1] > q[:, 1].max() - EAR_TIP_BAND
+        c = q[tip].mean(0)
+        d = q[tip] - c
+        d[:, 0] *= EAR_TIP_WIDEN; d[:, 2] *= EAR_TIP_WIDEN
+        q[tip] = c + d - np.array([0, EAR_TIP_DROP, 0])
         p[m] = q
     return p
 
 EAR_TILT, EAR_IN, EAR_SINK = 20.0, 0.03, 0.02
+EAR_TIP_BAND, EAR_TIP_WIDEN, EAR_TIP_DROP = 0.03, 2.6, 0.025
