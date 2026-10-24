@@ -1,3 +1,6 @@
+## 2.12.9
+- Curled up, the fox turns its face inward and rests its snout on top of its tail.
+
 ## 2.12.8
 - Curled up, the fox stretches its neck out a little and rests its head lower, with its snout lifted.
 
