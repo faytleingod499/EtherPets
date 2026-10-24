@@ -1,3 +1,6 @@
+## 2.12.6
+- The fox's ears lean slightly apart and sit fully on its head, with no edge hanging off the side.
+
 ## 2.12.5
 - The fox's front legs have an elbow now.
 - Curled up, the fox lies flat with its legs folded on the ground in the middle of its curl, and its slightly slimmer tail lets its head rest on top.

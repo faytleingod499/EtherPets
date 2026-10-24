@@ -78,4 +78,19 @@ def refit_ear_points(p, H, size=(0.78, 0.78, 0.8)):
         q = p[m]
         piv = np.array([s * 0.13, q[:, 1].min() + 0.01, 0.5 * (q[:, 2].min() + q[:, 2].max())])
         p[m] = piv + (q - piv) * np.array(size)
+    # tips leaning slightly apart, a little closer together and sunk a touch, so each ear's whole base sits on the
+    # narrower head (the outer edge otherwise hung off its side)
+    for s in (1.0, -1.0):
+        m = side == s
+        q = p[m]
+        piv = np.array([s * 0.5 * (np.abs(q[:, 0]).min() + np.abs(q[:, 0]).max()), q[:, 1].min(),
+                        0.5 * (q[:, 2].min() + q[:, 2].max())])
+        a = np.radians(EAR_TILT) * s
+        R = np.array([[np.cos(a), np.sin(a), 0], [-np.sin(a), np.cos(a), 0], [0, 0, 1]])
+        q = (q - piv) @ R.T + piv
+        q[:, 0] -= s * EAR_IN
+        q[:, 1] -= EAR_SINK
+        p[m] = q
     return p
+
+EAR_TILT, EAR_IN, EAR_SINK = 20.0, 0.03, 0.02
