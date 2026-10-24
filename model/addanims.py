@@ -12,7 +12,7 @@ LEAP_FRAMES = [1, 5, 9, 13]
 c1 = lambda q: [q]  # a pose that never changes
 
 import math
-from curl_states import A as CA, B as CB, ROOT_T
+from curl_states import A as CA, B as CB, T as CURL_T
 def _slerp(a, b, t):
     a = np.array(a, float); b = np.array(b, float)
     if a @ b < 0: b = -b
@@ -22,7 +22,7 @@ def _slerp(a, b, t):
         th = math.acos(d); q = (math.sin((1 - t) * th) * a + math.sin(t * th) * b) / math.sin(th)
     return tuple(q / np.linalg.norm(q))
 _W = [0.5 - 0.5 * math.cos(2 * math.pi * (f - 1) / 48) for f in CURL_FRAMES]   # one slow breath
-CURL = {bone: ([_slerp(CA[bone], CB[bone], w) for w in _W] if CA[bone] != CB[bone] else [CA[bone]], ROOT_T if bone == 'root' else None) for bone in CA}
+CURL = {bone: ([_slerp(CA[bone], CB[bone], w) for w in _W] if CA[bone] != CB[bone] else [CA[bone]], None) for bone in CA}
 LEAP = {
  'hips': [(0,0.1219,0.9925,0),(0,-0.1045,0.9945,0),(0,-0.0523,0.9986,0),(0,0.0698,0.9976,0)],
  'chest': [(0,0.9989,-0.0476,0),(0,0.9958,0.0919,0),(0,0.9984,0.0571,0),(0,0.9999,-0.0127,0)],
@@ -71,7 +71,7 @@ def add(g, name, frames, rot, trans, fps=24.0):
 
 if __name__ == '__main__':
     g = Glb(sys.argv[1])
-    add(g, 'fox_curl', CURL_FRAMES, {b: v[0] for b, v in CURL.items()}, {'root': CURL['root'][1]})
+    add(g, 'fox_curl', CURL_FRAMES, {b: v[0] for b, v in CURL.items()}, CURL_T)
     add(g, 'fox_leap', LEAP_FRAMES, LEAP, None)
     g.save(sys.argv[2])
     print('animations:', [a['name'] for a in g.j['animations']])

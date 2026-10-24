@@ -1,3 +1,7 @@
+## 2.12.2
+- The curled-up fox keeps its ears standing up (and a little closer together, on top of its head), and its head now rests fully on top of its tail.
+- It sits flush on your head instead of floating slightly above it.
+
 ## 2.12.1
 - The fox's curl is reworked: it rests its nose on top of its tail, the tail tucked under its head, with its ears laid back and its front and back legs folded into the middle of the curl. It also curls up centred on your head now.
 
