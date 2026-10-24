@@ -1,3 +1,6 @@
+## 2.12.17
+- The fox's petting sound is now one smooth, continuous note with no vibrato.
+
 ## 2.12.16
 - New fox sounds, modelled on a real fox: a quick run of chirpy gekkers when it answers a bark and a few softer chirps when petted.
 

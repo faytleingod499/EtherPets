@@ -44,12 +44,12 @@ def finish(x, echo=0.0):
     return x
 
 
-def chirp(f_start, f_peak, f_end, dur, wob=0.05, wob_hz=13.0, soft=1.0):
+def chirp(f_start, f_peak, f_end, dur, wob=0.05, wob_hz=13.0, soft=1.0, drift=1.0):
     n = int(dur * RATE)
     t = np.linspace(0, 1, n)
     f0 = np.interp(t, [0, 0.18, 1], [f_start, f_peak, f_end])
     f0 = f0 * (1 + wob * np.sin(2 * np.pi * wob_hz * t * dur + rng.random() * 6) * np.minimum(t * 4, 1))
-    f0 = f0 * (1 + 0.01 * np.convolve(rng.standard_normal(n), np.ones(200) / 200, "same") * 12)
+    f0 = f0 * (1 + 0.01 * np.convolve(rng.standard_normal(n), np.ones(200) / 200, "same") * 12 * drift)
     env = np.minimum(t / 0.08, 1) * np.clip((1 - t) / 0.25, 0, 1) ** 0.8 * (1 - 0.3 * t)
     v = voice(f0, 1.0, [(1100, 350, 1.0), (2500, 600, 0.8), (4200, 900, 0.35)], 0.22 * soft)
     return v * env
@@ -73,10 +73,12 @@ chirps = [chirp(a, p, e, d) * (1.0 - 0.09 * k) for k, (a, p, e, d) in enumerate(
 y = finish(sequence(chirps, gaps), echo=0.4)
 wavfile.write(os.path.join(out_dir, "fox_yip.wav"), RATE, (y * 32767).astype(np.int16))
 
-# the petted sound: three softer, longer, wobblier chirps
-specs = [(470, 580, 500, 0.4), (500, 620, 480, 0.36), (480, 560, 400, 0.5)]
-gaps = [0.14, 0.14, 0.0]
-chirps = [chirp(a, p, e, d, wob=0.07, wob_hz=9.0, soft=1.4) * (1.0 - 0.15 * k) for k, (a, p, e, d) in enumerate(specs)]
-c = finish(sequence(chirps, gaps, 0.15), echo=0.3)
+# the petted sound: one smooth, continuous note - a gentle rise and fall, no vibrato
+n = int(1.3 * RATE)
+t = np.linspace(0, 1, n)
+f0 = np.interp(t, [0, 0.25, 0.7, 1], [470, 590, 540, 430])
+env = np.minimum(t / 0.12, 1) * np.clip((1 - t) / 0.3, 0, 1) ** 0.9
+c = voice(f0, 1.0, [(1100, 350, 1.0), (2500, 600, 0.8), (4200, 900, 0.35)], 0.3) * env
+c = finish(np.concatenate([np.zeros(int(0.02 * RATE)), c, np.zeros(int(0.1 * RATE))]), echo=0.3)
 wavfile.write(os.path.join(out_dir, "fox_coo.wav"), RATE, (c * 32767).astype(np.int16))
 print("ok", len(y) / RATE, len(c) / RATE)
