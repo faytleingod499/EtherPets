@@ -1,3 +1,6 @@
+## 2.12.3
+- The curled-up fox now wraps its bushy tail round the front and lays its head on top of it, snout resting on the tail, like a real sleeping fox.
+
 ## 2.12.2
 - The curled-up fox keeps its ears standing up (and a little closer together, on top of its head), and its head now rests fully on top of its tail.
 - It sits flush on your head instead of floating slightly above it.
