@@ -1,3 +1,6 @@
+## 2.12.8
+- Curled up, the fox stretches its neck out a little and rests its head lower, with its snout lifted.
+
 ## 2.12.7
 - The tips of the fox's ears are rounder.
 

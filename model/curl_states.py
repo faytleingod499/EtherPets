@@ -3,13 +3,13 @@
 # snout lying on it, ears up, and all four legs folded flat on the ground in the middle of the curl (the front legs
 # bend at the new elbow joints).
 # A = breathing out, B = breathing in. Quaternions (x, y, z, w), glTF-local; T = every joint's offset from its parent;
-# S = scale.
+# S = scale. The neck is stretched a little (head joint further out) so the head can lie lower with the snout raised.
 A = {
  'root': (-0.7071, -0.0, -0.0, 0.7071),
  'hips': (-0.0, -0.0, -0.9905, 0.1375),
  'chest': (0.6498, -0.7526, -0.0915, 0.054),
- 'neck': (-0.5022, 0.1235, -0.3035, 0.8003),
- 'head': (0.4957, 0.3614, -0.4865, 0.6221),
+ 'neck': (-0.3154, -0.0482, -0.4699, 0.823),
+ 'head': (0.1592, 0.3752, -0.3883, 0.8265),
  'ear_L': (-0.6498, -0.0541, -0.0042, 0.7582),
  'ear_R': (-0.6498, 0.0541, 0.0042, 0.7582),
  'foreleg_L': (0.0427, -0.2807, -0.9568, 0.0622),
@@ -33,7 +33,7 @@ B['chest'] = (0.6467, -0.7499, -0.1167, 0.076)
 B['tail_3'] = (-0.492, -0.2064, -0.4253, 0.7311)
 T = {
  'root': (0.0, -0.3198, 0.0), 'hips': (0.0, 0.35, 0.62), 'chest': (0.0, 0.4, 0.02), 'neck': (0.0025, 0.457, 0.0037),
- 'head': (0.0, 0.2973, 0.0), 'ear_L': (0.12, 0.0905, -0.1882), 'ear_R': (-0.12, 0.0905, -0.1882),
+ 'head': (0.0, 0.3673, 0.0), 'ear_L': (0.12, 0.0905, -0.1882), 'ear_R': (-0.12, 0.0905, -0.1882),
  'foreleg_L': (0.2118, 0.3247, 0.1623), 'forearm_L': (0.0, 0.22, 0.0), 'forepaw_L': (0.0089, 0.2345, -0.0102),
  'foreleg_R': (-0.0998, 0.2828, 0.0782), 'forearm_R': (0.0, 0.22, 0.0), 'forepaw_R': (-0.0075, 0.2251, 0.0378),
  'hindleg_L': (-0.22, -0.07, -0.08), 'hindshin_L': (0.0, 0.2202, 0.0), 'hindpaw_L': (0.0, 0.2202, 0.0),
