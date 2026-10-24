@@ -1,3 +1,7 @@
+## 2.12.5
+- The fox's front legs have an elbow now.
+- Curled up, the fox lies flat with its legs folded on the ground in the middle of its curl, and its slightly slimmer tail lets its head rest on top.
+
 ## 2.12.4
 - The fox's ears are smaller and sit snugly on its head.
 - Curled up, the fox turns the tip of its tail in toward its body and keeps all four legs tucked in the middle of the curl.

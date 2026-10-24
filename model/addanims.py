@@ -12,7 +12,8 @@ LEAP_FRAMES = [1, 5, 9, 13]
 c1 = lambda q: [q]  # a pose that never changes
 
 import math
-from curl_states import A as CA, B as CB, T as CURL_T
+from curl_states import A as CA, B as CB, T as CURL_T, S as CURL_S
+from addelbow import ensure_rest_tracks
 def _slerp(a, b, t):
     a = np.array(a, float); b = np.array(b, float)
     if a @ b < 0: b = -b
@@ -40,7 +41,7 @@ LEAP = {
  'hindpaw_R': [(-0.3977,0,0,0.9175),(-0.3573,0,0,0.934),(-0.4374,0,0,0.8993),(-0.4762,0,0,0.8793)],
 }
 
-def add(g, name, frames, rot, trans, fps=24.0):
+def add(g, name, frames, rot, trans, fps=24.0, scale=None):
     j = g.j
     names = {n.get('name'): i for i, n in enumerate(j['nodes'])}
     def new_acc(data, typ):
@@ -66,12 +67,18 @@ def add(g, name, frames, rot, trans, fps=24.0):
     for bone, v in (trans or {}).items():
         anim['samplers'].append({'input': new_acc([0.0, times_all[-1]], 'SCALAR'), 'output': new_acc([v, v], 'VEC3'), 'interpolation': 'LINEAR'})
         anim['channels'].append({'sampler': len(anim['samplers']) - 1, 'target': {'node': names[bone], 'path': 'translation'}})
+    for bone, v in (scale or {}).items():
+        anim['samplers'].append({'input': new_acc([0.0, times_all[-1]], 'SCALAR'), 'output': new_acc([v, v], 'VEC3'), 'interpolation': 'LINEAR'})
+        anim['channels'].append({'sampler': len(anim['samplers']) - 1, 'target': {'node': names[bone], 'path': 'scale'}})
     j['animations'] = [a for a in j.get('animations', []) if a['name'] != name] + [anim]
     j['buffers'][0]['byteLength'] = len(g.bin)
 
 if __name__ == '__main__':
     g = Glb(sys.argv[1])
-    add(g, 'fox_curl', CURL_FRAMES, {b: v[0] for b, v in CURL.items()}, CURL_T)
-    add(g, 'fox_leap', LEAP_FRAMES, LEAP, None)
+    add(g, 'fox_curl', CURL_FRAMES, {b: v[0] for b, v in CURL.items()}, CURL_T, scale=CURL_S)
+    add(g, 'fox_leap', LEAP_FRAMES, LEAP, None, scale={'tail_1': (1.0, 1.0, 1.0)})
+    for a in g.j['animations']:
+        if a['name'] == 'fox_leap':
+            ensure_rest_tracks(g, a, ('forearm_L', 'forearm_R'))
     g.save(sys.argv[2])
     print('animations:', [a['name'] for a in g.j['animations']])
