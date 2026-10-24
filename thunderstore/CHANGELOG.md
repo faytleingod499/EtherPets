@@ -1,3 +1,6 @@
+## 2.12.18
+- Fixed: the fox's new sounds were missing from the mod file, so they never played.
+
 ## 2.12.17
 - The fox's petting sound is now one smooth, continuous note with no vibrato.
 
