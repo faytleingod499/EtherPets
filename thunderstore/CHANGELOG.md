@@ -1,3 +1,6 @@
+## 2.12.0
+- When you sit, the fox now crouches and pounces up onto your head, then curls up with its nose tucked under its tail, instead of lying down beside you.
+
 ## 2.11.1
 - The fox's snout is a bit shorter.
 

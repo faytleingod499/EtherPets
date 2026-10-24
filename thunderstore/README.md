@@ -11,7 +11,7 @@ Works on any server.
 - **Wolf**: trots after you, lies down beside you when you sit, gives a happy whine when petted and
   answers your bark with a short howl.
 - **Cat**: hops into your lap and curls up when you sit, purrs when petted and meows back at you.
-- **Fox**: slim, with a long snout, big ears and a bushy tail. It walks after you and lies down beside you when you sit.
+- **Fox**: slim, with a long snout, big ears and a bushy tail. It walks after you, and when you sit it pounces up onto your head and curls up there.
 - **Raccoon**: doesn't walk, it rolls after you in little somersaults. When you sit it climbs up and drapes
   itself over your head. It chatters when petted and when you bark.
 

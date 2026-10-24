@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.11.1"
+const VERSION = "2.12.0"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -108,7 +108,8 @@ const SPECIES = {
 	},
 	"fox": {
 		# the wolf's skeleton and animations, in a slimmer body with a long snout, big ears and a bushy tail
-		"label": "Fox", "model": "res://mods/EtherPets/fox.scn", "scale": 0.68, "move": "walk", "sit": "beside",
+		"label": "Fox", "model": "res://mods/EtherPets/fox.scn", "scale": 0.68, "move": "walk", "sit": "head",
+		"perch_anim": "fox_curl", "hop_anim": "fox_leap", "hop_time": 0.6, # pounces up onto its owner's head and curls up
 		"parts": STANDARD_PARTS + ["neck", "throat", "tail"],
 		"derive": {"legs": "fur"},
 		"pet_sound": "res://Sounds/dog_whine.ogg", "pet_pitch": 1.6,       # a high, happy whine
@@ -479,7 +480,7 @@ func _update_pets(delta, net):
 		if pet["area"] != null and is_instance_valid(pet["area"]):
 			var name = str(wanted[key][4])
 			pet["area"].text = "Pet " + (name if name != "" else SPECIES[pet["species"]]["label"].to_lower())
-			pet["area"].visible = pet["pat"] == null and pet["lap"] == "" and pet.get("fetch") == null and not pet["anim_name"] in ["wolf_sit", "wolf_lie", "cat_curl", "raccoon_flop", "raccoon_sit"]
+			pet["area"].visible = pet["pat"] == null and pet["lap"] == "" and pet.get("fetch") == null and not pet["anim_name"] in ["wolf_sit", "wolf_lie", "cat_curl", "raccoon_flop", "raccoon_sit", "fox_curl"]
 
 
 # --- making a pet ---
@@ -823,7 +824,7 @@ func _move_pet(pet, owner_node, delta):
 
 	# turn to where it walks, or to its owner while standing; once it sits or lies down it stays
 	# put until it gets up to follow, so its owner can sit right beside it
-	var settled = pet["anim_name"] in ["wolf_sit", "wolf_lie", "cat_curl", "raccoon_flop", "raccoon_sit"]
+	var settled = pet["anim_name"] in ["wolf_sit", "wolf_lie", "cat_curl", "raccoon_flop", "raccoon_sit", "fox_curl"]
 	if dist > 0.05 and (pet["speed"] > 0.3 or not settled):
 		var yaw = atan2(-dir.x, -dir.z)
 		node.rotation.y = lerp_angle(node.rotation.y, yaw, clamp(delta * (8.0 if pet["speed"] > 0.3 else 3.0), 0.0, 1.0))
@@ -1604,18 +1605,18 @@ func _perch(pet, owner_node, delta, mode):
 	var target = _perch_spot(pet, owner_node, mode)
 	if pet["lap"] == "hop":
 		pet["hop_t"] += delta
-		var k = clamp(pet["hop_t"] / LAP_HOP_TIME, 0.0, 1.0)
+		var k = clamp(pet["hop_t"] / SPECIES[pet["species"]].get("hop_time", LAP_HOP_TIME), 0.0, 1.0)
 		var arc = sin(k * PI) * (0.25 * pet["scale"] + PERCH[mode]["hop"] * _player_size(owner_node))
 		node.global_transform.origin = pet["hop_from"].linear_interpolate(target[0], k) + Vector3.UP * arc
 		node.rotation.y = lerp_angle(node.rotation.y, target[1], k)
-		_play(pet, "wolf_sit", 1.0)
+		_play(pet, SPECIES[pet["species"]].get("hop_anim", "wolf_sit"), 1.0)
 		if k >= 1.0:
 			pet["lap"] = "in"
 		return
 	# settled, staying with its owner as they move about in their seat
 	node.global_transform.origin = target[0]
 	node.rotation.y = lerp_angle(node.rotation.y, target[1], clamp(delta * 8.0, 0.0, 1.0))
-	_play(pet, PERCH[mode]["anim"], 1.0)
+	_play(pet, SPECIES[pet["species"]].get("perch_anim", PERCH[mode]["anim"]), 1.0)
 
 
 func _hop_down(pet, owner_node, delta):
