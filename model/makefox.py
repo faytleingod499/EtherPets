@@ -51,8 +51,13 @@ def fox_positions(g, P):
             grow=1.0+0.32*sm(along/ (L*0.45))
             if name=='pet_tail': grow=grow*1.05
             p=a0+np.outer(along,ax)+radial*grow[:,None]
+        # eye shine: pulled back so it sits just proud of the eye instead of sticking out
+        if name == 'pet_white':
+            p[:, 2] -= SHINE_BACK
         out.append(p)
     return ear_refit(names, out)
+
+SHINE_BACK = 0.012
 
 EAR_NAMES = ('pet_ear_inner', 'pet_ear_back')
 HEAD_SURFACE = ('pet_head', 'pet_fur', 'pet_face')

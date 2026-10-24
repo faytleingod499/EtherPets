@@ -1,3 +1,6 @@
+## 2.12.10
+- The shine in the fox's eyes sits closer to the eye instead of sticking out.
+
 ## 2.12.9
 - Curled up, the fox turns its face inward and rests its snout on top of its tail.
 
