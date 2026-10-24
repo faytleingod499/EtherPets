@@ -1,3 +1,6 @@
+## 2.12.14
+- The curled-up fox sits lower on its owner's head.
+
 ## 2.12.13
 - Curled up, the fox lies flat: its body is lowered and its legs and tail raised so all the bottom surfaces sit at the same level.
 

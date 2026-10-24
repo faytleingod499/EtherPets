@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.12.13"
+const VERSION = "2.12.14"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -109,7 +109,7 @@ const SPECIES = {
 	"fox": {
 		# the wolf's skeleton and animations, in a slimmer body with a long snout, big ears and a bushy tail
 		"label": "Fox", "model": "res://mods/EtherPets/fox.scn", "scale": 0.68, "move": "walk", "sit": "head",
-		"perch_anim": "fox_curl", "perch_centre": Vector3(-0.239, 0, 0.322), "perch_turn": deg2rad(145), "hop_anim": "fox_leap", "hop_time": 0.6, # pounces up onto its owner's head and curls up
+		"perch_anim": "fox_curl", "perch_centre": Vector3(-0.239, 0, 0.322), "perch_turn": deg2rad(145), "perch_drop": 0.09, "hop_anim": "fox_leap", "hop_time": 0.6, # pounces up onto its owner's head and curls up
 		"parts": STANDARD_PARTS + ["neck", "throat", "tail"],
 		"derive": {"legs": "fur"},
 		"pet_sound": "res://Sounds/dog_whine.ogg", "pet_pitch": 1.6,       # a high, happy whine
@@ -1576,6 +1576,7 @@ func _perch_spot(pet, owner_node, mode):
 		var spot = _head_top(owner_node) - _facing(owner_node) * HEAD_BACK * _player_size(owner_node)
 		# put the middle of a curl over the head (perch_centre: the middle of the curl in the pet node's space at size 1)
 		var centre = SPECIES[pet["species"]].get("perch_centre", Vector3.ZERO)
+		spot -= Vector3.UP * SPECIES[pet["species"]].get("perch_drop", 0.0) * pet["scale"] * _player_size(owner_node)
 		return [spot - Basis(Vector3.UP, yaw).xform(centre * pet["scale"]), yaw]
 	var basis = Basis(Vector3.UP, yaw)
 	# a little forward of the thighs' middle, so it lies on the lap and not inside its owner
