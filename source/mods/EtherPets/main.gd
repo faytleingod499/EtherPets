@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.12.10"
+const VERSION = "2.12.11"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -109,7 +109,7 @@ const SPECIES = {
 	"fox": {
 		# the wolf's skeleton and animations, in a slimmer body with a long snout, big ears and a bushy tail
 		"label": "Fox", "model": "res://mods/EtherPets/fox.scn", "scale": 0.68, "move": "walk", "sit": "head",
-		"perch_anim": "fox_curl", "perch_centre": Vector3(0.23, 0, -0.21), "hop_anim": "fox_leap", "hop_time": 0.6, # pounces up onto its owner's head and curls up
+		"perch_anim": "fox_curl", "perch_centre": Vector3(-0.239, 0, 0.322), "perch_turn": deg2rad(145), "hop_anim": "fox_leap", "hop_time": 0.6, # pounces up onto its owner's head and curls up
 		"parts": STANDARD_PARTS + ["neck", "throat", "tail"],
 		"derive": {"legs": "fur"},
 		"pet_sound": "res://Sounds/dog_whine.ogg", "pet_pitch": 1.6,       # a high, happy whine
@@ -1569,11 +1569,13 @@ func _head_top(owner_node):
 # where its origin goes: a cat with the middle of its curl on the lap, lying across it;
 # a raccoon flopped belly-down on top of the head, facing the same way as its owner
 func _perch_spot(pet, owner_node, mode):
-	var yaw = atan2(-_facing(owner_node).x, -_facing(owner_node).z) + PERCH[mode]["turn"]
+	# a species can turn its curl on the head (the fox shows its face to whoever is in front of its owner)
+	var yaw = atan2(-_facing(owner_node).x, -_facing(owner_node).z) + SPECIES[pet["species"]].get("perch_turn", PERCH[mode]["turn"])
 	if mode == "head":
 		# the head bone sits toward the face, so shift back to put its belly over the middle of the head
 		var spot = _head_top(owner_node) - _facing(owner_node) * HEAD_BACK * _player_size(owner_node)
-		var centre = SPECIES[pet["species"]].get("perch_centre", Vector3.ZERO)   # put the middle of a curl over the head
+		# put the middle of a curl over the head (perch_centre: the middle of the curl in the pet node's space at size 1)
+		var centre = SPECIES[pet["species"]].get("perch_centre", Vector3.ZERO)
 		return [spot - Basis(Vector3.UP, yaw).xform(centre * pet["scale"]), yaw]
 	var basis = Basis(Vector3.UP, yaw)
 	# a little forward of the thighs' middle, so it lies on the lap and not inside its owner

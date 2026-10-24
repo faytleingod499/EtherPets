@@ -1,3 +1,6 @@
+## 2.12.11
+- The curled-up fox now sits centred on your head (it was off to one side and behind), turned so its face looks out the same way you do.
+
 ## 2.12.10
 - The shine in the fox's eyes sits closer to the eye instead of sticking out.
 
