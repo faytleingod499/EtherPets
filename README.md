@@ -1,6 +1,6 @@
 # EtherPets
 
-A little pet, a **wolf**, a **cat** or a **raccoon**, that follows you around in WEBFISHING. It walks after you
+A little pet, a **wolf**, a **fox**, a **cat** or a **raccoon**, that follows you around in WEBFISHING. It walks after you
 (keeping up at any speed), waits beside you and sits down when you stand still for a while. Works on
 any server.
 
@@ -15,7 +15,7 @@ Needs [GDWeave](https://github.com/NotNite/GDWeave). Copy the `EtherPets` folder
 ## Using it
 
 - Press **P** or click the **paw button** (drag it anywhere, it remembers where) for the pet menu:
-  - The **wolf**, **cat** and **raccoon** face buttons choose your pet.
+  - The **wolf**, **fox**, **cat** and **raccoon** face buttons choose your pet.
   - **Show my pet**, **Answer when I bark** (a wolf howls, a cat meows, a raccoon chitters) and **Wait**, how long it
     waits before answering again (15 seconds to 10 minutes, 2 minutes to start with).
   - **Size** from 50% to 150%.
@@ -78,3 +78,6 @@ godot --no-window -s pack.gd
 ## License
 
 [MIT](LICENSE): you are free to copy, change and share your own versions of this mod, as long as you keep the copyright notice.
+
+The fox's mesh is made from the wolf's by `model/makefox.py` (needs numpy; run it where `glbio.py` is, with the wolf export
+at the path inside the script): slimmer body, longer snout, taller ears, bushier tail, same skeleton and animations.

@@ -1,6 +1,6 @@
 # EtherPets
 
-A little pet that follows you around WEBFISHING: a **wolf**, a **cat** or a **raccoon**, in colours you pick.
+A little pet that follows you around WEBFISHING: a **wolf**, a **fox**, a **cat** or a **raccoon**, in colours you pick.
 It keeps up with you at any speed, waits beside you, and settles down when you stand still for a while.
 Works on any server.
 
@@ -11,6 +11,7 @@ Works on any server.
 - **Wolf**: trots after you, lies down beside you when you sit, gives a happy whine when petted and
   answers your bark with a short howl.
 - **Cat**: hops into your lap and curls up when you sit, purrs when petted and meows back at you.
+- **Fox**: slim, with a long snout, big ears and a bushy tail. It walks after you and lies down beside you when you sit.
 - **Raccoon**: doesn't walk, it rolls after you in little somersaults. When you sit it climbs up and drapes
   itself over your head. It chatters when petted and when you bark.
 
@@ -18,7 +19,7 @@ Works on any server.
 
 Press **P** or click the **paw button** (drag it anywhere, it remembers where) to open the pet menu:
 
-- **Wolf / cat / raccoon** buttons pick your pet.
+- **Wolf / fox / cat / raccoon** buttons pick your pet.
 - **Show my pet** turns it on and off.
 - **Answer when I bark**: your pet answers your bark or meow (modded species too). **Wait** sets how long
   it waits before answering again, from 15 seconds to 10 minutes.

@@ -1,3 +1,8 @@
+## 2.11.0
+- New pet: a **fox**. A slim body, a long snout, big pointed ears and a bushy tail with a white tip. Pick it with the new fox face button.
+  Ready-made looks: Red, Arctic and Silver. Every colour area works like the wolf's (it also has its own neck, throat and tail tip), it lies down beside you when you sit, and it fetches the Pet Ball.
+  It whines in a high voice and yips when you bark. Players with an older version of the mod see a fox as a wolf.
+
 ## 2.10.7
 - Pets follow you up and down: when you climb a ladder or ride a blue mushroom onto higher ground, your pet comes up
   onto it too instead of staying at the old height inside the ground. If it's ever left more than 5 m above or below

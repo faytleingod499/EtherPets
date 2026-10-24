@@ -6,7 +6,7 @@ extends Node
 # its colours. Your choices are shared through the Steam lobby, so other players who have this mod
 # see your pet exactly as you made it. Players without the mod do not see pets. Works on any server.
 
-const VERSION = "2.10.7"
+const VERSION = "2.11.0"
 const CONFIG_PATH = "user://etherpets.json"
 const OLD_CONFIG_PATH = "user://wolfpets.json" # from when it was Wolf Pets
 const SHADOW_PATH = "res://Scenes/Entities/Shadow/shadow.tscn"
@@ -49,7 +49,7 @@ const FETCH_WAIT = 0.5       # seconds it watches the ball fly before it runs af
 const FETCH_GIVE_UP = 25.0   # seconds; a ball it can't reach (in the sea, up a cliff) is let go
 const THROW_COOLDOWN_MS = 600
 # where the ball sits in its mouth: in its head bone's own space, model units (bone y = forward, z = down)
-const MOUTH = {"wolf": Vector3(0, 0.64, 0.22), "cat": Vector3(0, 0.43, 0.14), "raccoon": Vector3(0, 0.58, 0.12)}
+const MOUTH = {"wolf": Vector3(0, 0.64, 0.22), "cat": Vector3(0, 0.43, 0.14), "raccoon": Vector3(0, 0.58, 0.12), "fox": Vector3(0, 0.80, 0.22)}
 
 # the parts that can be coloured: key, label, the model's material for it.
 # The first six keep their places (older versions of the mod read the lobby text by position).
@@ -88,7 +88,7 @@ const DERIVE = {"paws": "belly", "muzzle": "belly", "legs": "paws", "tail": "bac
 # "move": how it gets about ("walk", or "roll" in somersaults: "roll_dist" is how far one somersault
 #         carries it, in the model's own units). "sit": what it does when its owner sits down
 #         ("beside" them, in their "lap", or on their "head").
-const SPECIES_ORDER = ["wolf", "cat", "raccoon"]
+const SPECIES_ORDER = ["wolf", "fox", "cat", "raccoon"]
 const STANDARD_PARTS = ["fur", "back", "belly", "legs", "hindlegs", "paws", "tailbase", "eyes", "shine", "mouth", "tongue",
 	"earback", "ears", "head", "face", "muzzle", "nose"]
 const SPECIES = {
@@ -104,6 +104,23 @@ const SPECIES = {
 			["Grey", {"fur": "aaadb8", "back": "797c89", "belly": "e7eaed", "eyes": "303038", "nose": "303038", "ears": "e7bfc8"}],
 			["White", {"fur": "eff0f2", "back": "d4d8df", "belly": "fcfcfa", "eyes": "303038", "nose": "303038", "ears": "e7bfc8"}],
 			["Black", {"fur": "4d4d55", "back": "2c2c30", "belly": "95979e", "eyes": "e8a23a", "nose": "1c1c20", "ears": "e7bfc8"}],
+		],
+	},
+	"fox": {
+		# the wolf's skeleton and animations, in a slimmer body with a long snout, big ears and a bushy tail
+		"label": "Fox", "model": "res://mods/EtherPets/fox.scn", "scale": 0.68, "move": "walk", "sit": "beside",
+		"parts": STANDARD_PARTS + ["neck", "throat", "tail"],
+		"derive": {"legs": "fur"},
+		"pet_sound": "res://Sounds/dog_whine.ogg", "pet_pitch": 1.6,       # a high, happy whine
+		"call_sound": "res://Sounds/dog_bark.ogg", "call_pitch": 1.9,      # a yip back
+		"call_time": 0.9, "call_lift": 22.0,
+		"presets": [
+			["Red", {"fur": "d9772b", "back": "b85a1c", "belly": "f6ece0", "eyes": "2a1c10", "nose": "1c1c20", "ears": "e8b8b0",
+				"earback": "3a2a22", "legs": "3a2a22", "hindlegs": "3a2a22", "paws": "2a2020", "tail": "fbf6ee", "muzzle": "f6ece0", "throat": "f6ece0"}],
+			["Arctic", {"fur": "f2f4f6", "back": "dfe3e8", "belly": "ffffff", "eyes": "2a2a30", "nose": "1c1c20", "ears": "f0c8cc",
+				"earback": "e8ebef", "legs": "f2f4f6", "hindlegs": "f2f4f6", "paws": "e8ebef", "tail": "ffffff", "muzzle": "ffffff", "throat": "ffffff"}],
+			["Silver", {"fur": "8e939c", "back": "5f636c", "belly": "e9ebee", "eyes": "d9a83a", "nose": "1c1c20", "ears": "e0b8bc",
+				"earback": "2c2c32", "legs": "3a3a40", "hindlegs": "3a3a40", "paws": "2a2a30", "tail": "f4f4f6", "muzzle": "e9ebee", "throat": "e9ebee"}],
 		],
 	},
 	"cat": {
@@ -2371,6 +2388,18 @@ func _draw_face(b, kind):
 		b.draw_circle(c + Vector2(-5, -3), 1.7, dark)
 		b.draw_circle(c + Vector2(5, -3), 1.7, dark)
 		b.draw_circle(c + Vector2(0, 10.5), 2.2, dark)
+	elif kind == "fox":
+		var orange = Color(0.92, 0.5, 0.17)
+		for sx in [-1, 1]:
+			b.draw_colored_polygon(PoolVector2Array([c + Vector2(sx * 13, -3), c + Vector2(sx * 10, -19), c + Vector2(sx * 2, -9)]), orange)
+			b.draw_colored_polygon(PoolVector2Array([c + Vector2(sx * 10.5, -6), c + Vector2(sx * 9.5, -15), c + Vector2(sx * 5, -9)]), dark)
+		b.draw_colored_polygon(PoolVector2Array([c + Vector2(-12, -7), c + Vector2(-7, -10), c + Vector2(0, -11), c + Vector2(7, -10),
+			c + Vector2(12, -7), c + Vector2(9, 1), c + Vector2(4, 8), c + Vector2(0, 14), c + Vector2(-4, 8), c + Vector2(-9, 1)]), orange)
+		b.draw_colored_polygon(PoolVector2Array([c + Vector2(-9, 1), c + Vector2(-4, -1), c + Vector2(0, 2), c + Vector2(4, -1), c + Vector2(9, 1),
+			c + Vector2(4, 8), c + Vector2(0, 14), c + Vector2(-4, 8)]), fur)
+		b.draw_circle(c + Vector2(-5, -4), 1.6, dark)
+		b.draw_circle(c + Vector2(5, -4), 1.6, dark)
+		b.draw_circle(c + Vector2(0, 12.5), 1.8, dark)
 	elif kind == "raccoon":
 		var mask = Color(0.2, 0.22, 0.26)
 		for sx in [-1, 1]:
