@@ -1,3 +1,6 @@
+## 2.12.1
+- The fox's curl is reworked: it rests its nose on top of its tail, the tail tucked under its head, with its ears laid back and its front and back legs folded into the middle of the curl. It also curls up centred on your head now.
+
 ## 2.12.0
 - When you sit, the fox now crouches and pounces up onto your head, then curls up with its nose tucked under its tail, instead of lying down beside you.
 
