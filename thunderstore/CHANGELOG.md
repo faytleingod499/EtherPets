@@ -1,3 +1,6 @@
+## 2.12.13
+- Curled up, the fox lies flat: its body is lowered and its legs and tail raised so all the bottom surfaces sit at the same level.
+
 ## 2.12.12
 - The fox's ears are back: rounder tips, a bit shorter, leaning apart so their bases sit on the head. (An earlier build had dropped this change.)
 
